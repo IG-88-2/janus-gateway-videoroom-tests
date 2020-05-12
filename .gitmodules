@@ -1,8 +1,8 @@
 [submodule "janus-gateway-node"]
 	path = janus-gateway-node
 	url = https://github.com/WildHorse19/janus-gateway-node
-	update = rebase
+	branch = master
 [submodule "janus-gateway-videoroom-demo"]
 	path = janus-gateway-videoroom-demo
 	url = https://github.com/WildHorse19/janus-gateway-videoroom-demo
-	update = rebase
+	branch = master

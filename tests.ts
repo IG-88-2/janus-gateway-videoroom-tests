@@ -53,7 +53,7 @@ const launchJanus = ({
 
 const launchServer = () => {
 
-	const staticPath = path.join("..", "janus-gateway-videoroom-demo", "development");
+	const staticPath = path.join(__dirname, "development");
 	
 	const app : any = express();
 
