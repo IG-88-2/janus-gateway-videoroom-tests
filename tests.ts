@@ -53,7 +53,7 @@ const launchJanus = ({
 
 const launchServer = () => {
 
-	const staticPath = path.join(__dirname, "janus-gateway-videoroom-demo", "development");
+	const staticPath = path.join("..", "janus-gateway-videoroom-demo", "development");
 	
 	const app : any = express();
 
@@ -237,17 +237,12 @@ describe(
 
 				await launchServer();
 				
-				await pause(2000000);
-
-				/*
 				const instance = launchJanus({
 					config: `${local_config_folder}/janus.jcfg`, 
 					config_folder: `${local_config_folder}`
 				});
 				
 				await pause(1500);
-
-				await launchServer();
 				
 				const janus = new Janus({
 					instances: [
@@ -285,15 +280,13 @@ describe(
 					}
 				});
 				
-				await janus.synchronize();
-				
 				await pause(1500);
 				
 				await launchClient("publisher", "husky_cif.y4m");
 				
 				await pause(1500);
 
-				await launchClient("publisher", "sign_irene_qcif.y4m");
+				//await launchClient("publisher", "sign_irene_qcif.y4m");
 
 				await pause(2000000);
 				
@@ -302,7 +295,7 @@ describe(
 				//instance.stdin.pause();
 
 				//instance.kill();
-				*/
+				
 				
 			}
 		);
