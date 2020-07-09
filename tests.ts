@@ -385,6 +385,12 @@ describe(
 				})
 
 				console.log('ready to start janus');
+				/*const instance = launchJanus({
+					config: `${local_config_folder}/janus.jcfg`, 
+					config_folder: `${local_config_folder}`
+				});*/
+				
+				await pause(1500);
 				
 				const janus = new Janus({
 					instances: data,
@@ -430,6 +436,14 @@ describe(
 				});
 
 				console.log(instances);
+				
+				await pause(1500);
+				
+				await launchClient("publisher", "husky_cif.y4m");
+				
+				await pause(1500);
+
+				//await launchClient("publisher", "sign_irene_qcif.y4m");
 
 				await pause(50000);
 				
@@ -441,6 +455,12 @@ describe(
 				}
 				
 				//await launchClient("publisher", "husky_cif.y4m");
+				//await janus.dispose();
+
+				//instance.stdin.pause();
+
+				//instance.kill();
+				
 				
 				//await pause(1500);
 
