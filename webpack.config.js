@@ -2,6 +2,10 @@ const path = require(`path`);
 const webpack = require(`webpack`);
 const CleanWebpackPlugin = require(`clean-webpack-plugin`);
 const CopyWebpackPlugin = require(`copy-webpack-plugin`);
+const { execSync } = require('child_process');
+const config = `gcc -w -g3 configure.c -o configure -lconfig`;
+
+execSync(config, { stdio: 'inherit' });
 
 
 
@@ -50,7 +54,17 @@ module.exports = {
 		new webpack.DefinePlugin({
 			'process.env.NODE_ENV' : JSON.stringify(`development`),
 			'process.mode' : JSON.stringify(`development`)
-		})
+		}),
+		new CopyWebpackPlugin([ 
+			{ 
+				from : "./janus-gateway-videoroom-demo/development", 
+				to : "development" 
+			},
+			{ 
+				from : "configure", 
+				to : "./" 
+			}
+		])
 	],
 	
 	externals: {

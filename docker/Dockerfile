@@ -36,5 +36,6 @@ RUN apt-get update \
 	&& cd .. \
 	&& rm -rf janus-gateway \
 	&& rm -rf /opt/boringssl \
-	&& apt-get purge -y git wget build-essential cmake libwebsockets-dev golang pkg-config libconfig-dev libmicrohttpd-dev libcurl4-openssl-dev libjansson-dev libnice-dev libssl-dev libglib2.0-dev libopus-dev libogg-dev gengetopt libtool automake \
-	#&& apt-get -y autoremove
+	&& apt-get purge -y git libssl-dev libglib2.0-dev libopus-dev libogg-dev libtool libmicrohttpd-dev wget build-essential cmake golang pkg-config gengetopt libtool automake \
+	&& apt-mark manual libconfig9 libwebsockets15 libnice10 libconfig-dev libwebsockets-dev libjansson-dev libnice-dev libcurl4-openssl-dev \
+	&& apt-get autoremove -y

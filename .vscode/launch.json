@@ -5,17 +5,35 @@
     "version": "0.2.0",
     "configurations": [
         {
+            "request": "launch",
+			"name": "Run mocha",
+			"type": "node",
+			"program": "${workspaceFolder}/node_modules/mocha/bin/_mocha",
+			"stopOnEntry": false,
+			"args": ["${workspaceFolder}/tests/test.js"],
+            "runtimeExecutable": null,
+            "cwd": "${workspaceFolder}"
+        },
+        {
             "name": "(gdb) Launch",
             "type": "cppdbg",
             "request": "launch",
-            "program": "${workspaceFolder}/config",
+            "program": "${workspaceFolder}/configure",
             "args": [
                 "--admin_key",
-                "gsehzsehszeh",
-                "--server_name",
-                "nice"
+                "0ff49630-ae22-11ea-b96c-81cc1ae5bfb8",
+                "--server_name", 
+                "instance1",
+                "--config_base",
+                "/home/herbert/Desktop/janus-gateway-videoroom-tests/tests/0ff4bd41-ae22-11ea-b96c-81cc1ae5bfb8",
+                "--ws_port",
+                "8188",
+                "--admin_ws_port",
+                "7188",
+                "--log_prefix",
+                "instance1"
             ],
-            "stopAtEntry": true,
+            "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
             "environment": [],
             "externalConsole": false,

@@ -60,6 +60,11 @@
   resolved "https://registry.yarnpkg.com/@types/node/-/node-8.10.60.tgz#73eb4d1e1c8aa5dc724363b57db019cf28863ef7"
   integrity sha512-YjPbypHFuiOV0bTgeF07HpEEqhmHaZqYNSdCKeBJa+yFoQ/7BC+FpJcwmi34xUIIRVFktnUyP1dPU8U0612GOg==
 
+"@types/pidusage@^2.0.1":
+  version "2.0.1"
+  resolved "https://registry.yarnpkg.com/@types/pidusage/-/pidusage-2.0.1.tgz#45eb309be947dcfa177957ef662ce2a0a2311d48"
+  integrity sha512-tYYcz/+5v/EGYT83C0pIXrJGOiVBLksQvxgJboG4nGqx/gZTvq0Ro4SkAjECqMk7L4Ww58VWB4j48qeYh4/YJg==
+
 "@types/qs@*":
   version "6.9.1"
   resolved "https://registry.yarnpkg.com/@types/qs/-/qs-6.9.1.tgz#937fab3194766256ee09fcd40b781740758617e7"
@@ -4623,6 +4628,11 @@ node-libs-browser@^2.0.0:
     util "^0.11.0"
     vm-browserify "^1.0.1"
 
+node-usage@^0.0.3:
+  version "0.0.3"
+  resolved "https://registry.yarnpkg.com/node-usage/-/node-usage-0.0.3.tgz#f6f5564f4b37492cf030ffa94faab3d2baccb4ca"
+  integrity sha1-9vVWT0s3SSzwMP+pT6qz0rrMtMo=
+
 nodemon@^1.19.4:
   version "1.19.4"
   resolved "https://registry.yarnpkg.com/nodemon/-/nodemon-1.19.4.tgz#56db5c607408e0fdf8920d2b444819af1aae0971"
@@ -5005,6 +5015,13 @@ pidusage@^1.1.0:
   version "1.2.0"
   resolved "https://registry.yarnpkg.com/pidusage/-/pidusage-1.2.0.tgz#65ee96ace4e08a4cd3f9240996c85b367171ee92"
   integrity sha512-OGo+iSOk44HRJ8q15AyG570UYxcm5u+R99DI8Khu8P3tKGkVu5EZX4ywHglWSTMNNXQ274oeGpYrvFEhDIFGPg==
+
+pidusage@^2.0.19:
+  version "2.0.19"
+  resolved "https://registry.yarnpkg.com/pidusage/-/pidusage-2.0.19.tgz#5fec4574b886c9b0325f6fbd244edcd03d78f048"
+  integrity sha512-JyPR5G3crevDDaIw+CCnMEDQYuKEod/1BCgtNpyVJknJiXVqf+c9Oy3W+PKoPw8e7KA5AmwHecoviWstXHwI6w==
+  dependencies:
+    safe-buffer "^5.1.2"
 
 pify@^3.0.0:
   version "3.0.0"
@@ -5619,6 +5636,11 @@ ripemd160@^2.0.0, ripemd160@^2.0.1:
   dependencies:
     hash-base "^3.0.0"
     inherits "^2.0.1"
+
+roar-pidusage@^1.1.7:
+  version "1.1.7"
+  resolved "https://registry.yarnpkg.com/roar-pidusage/-/roar-pidusage-1.1.7.tgz#b554ee9603e26d301855dd6d862079b4bc6369e8"
+  integrity sha1-tVTulgPibTAYVd1thiB5tLxjaeg=
 
 run-queue@^1.0.0, run-queue@^1.0.3:
   version "1.0.3"
