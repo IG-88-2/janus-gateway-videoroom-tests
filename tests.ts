@@ -2,7 +2,7 @@ import * as mocha from 'mocha';
 import * as express from 'express';
 import Janus from './janus-gateway-node/lib/janus-gateway-node';
 import { v1 as uuidv1 } from 'uuid';
-import { spawnSync } from 'child_process';
+import { spawnSync, exec } from 'child_process';
 const { spawn, execSync } = require('child_process');
 const expect = require(`chai`).expect;
 const fs = require(`fs-extra`);
@@ -310,24 +310,29 @@ const launchDocker2 = ({
 }
 
 
+
 describe(
 	`publishing`,
 	() => {
 
-		let folders = [];
-
-		let cleanup = () => {
-			
-			for(let i = 0; i < folders.length; i++) {
-				console.log(`remove config folder ${folders[i]}`);
-				fs.removeSync(folders[i]);
-			};
-
-		};
-
 		after(() => {
 			
-			cleanup();
+			const command = `docker ps -a -q | docker stop`; //`docker stop $(docker ps -a -q)`;
+
+			try {
+
+				const result = execSync(
+					command,
+					{
+						stdio: 'inherit'
+					}
+				);
+		
+			} catch(error) {
+		
+				console.error(`failed to execute command after`, error);
+		
+			}
 
 		});
 
@@ -337,29 +342,110 @@ describe(
 
 				this.timeout(0);
 				
-				await launchServer();
-				
 				const instances = [
 					{
 						admin_key : uuidv1(),
 						server_name : `instance1`,
 						ws_port : 8188,
-						log_prefix : `instance1`,
+						log_prefix : `instance1: `,
 						admin_ws_port : 7188,
 						ps : null
 					},
-					/*
 					{
 						admin_key : uuidv1(),
 						server_name : `instance2`,
 						ws_port : 8189,
-						log_prefix : `instance2`,
+						log_prefix : `instance2: `,
 						admin_ws_port : 7189,
 						ps : null
 					}
-					*/
 				];
+				
+				for(let i = 0; i < instances.length; i++) {
+					console.log(`ready to execute command ${i}`);
 
+					const {
+						admin_key,
+						server_name,
+						ws_port,
+						log_prefix,
+						admin_ws_port
+					} = instances[i];
+					
+					const args = [
+						[ "ID", uuidv1() ],
+						[ "ADMIN_KEY", admin_key ],
+						[ "SERVER_NAME", server_name ],
+						[ "WS_PORT", ws_port ],
+						[ "ADMIN_WS_PORT", admin_ws_port ],
+						[ "LOG_PREFIX", log_prefix ]
+					];
+
+					const image = '88d29c8004b1';
+
+					let command = `docker run -i `;
+					
+					command += `-p ${ws_port}:${ws_port} `;
+					command += `-p ${admin_ws_port}:${admin_ws_port} `;
+					command += `${args.map(([name,value]) => `-e ${name}="${value}"`).join(' ')} `; 
+					command += `${image}`;
+					
+					try {
+
+						const result = exec(
+							command,
+							(error, stdout, stderr) => {
+
+								console.log(`done for ${i}`, error);
+
+							}
+						);
+				
+					} catch(error) {
+				
+						console.error(`failed to execute command ${i}`, error);
+				
+					}
+				}
+				
+				await pause(1500);
+
+				//cp -a /opt/janus/etc/janus/. /$ADMIN_KEY-2
+				
+				//const temp = `${__dirname}/${uuidv1()}`;
+				//const src = "/opt/janus/etc/janus";
+				//const program = "/opt/janus/bin/janus";
+				//await fs.copy(src, temp);
+				//[ "CONFIG_BASE", temp ],
+				
+				/*
+				const temp = `${__dirname}/${uuidv1()}`;
+
+				const src = "/opt/janus/etc/janus";
+			
+				const program = "/opt/janus/bin/janus";
+			
+				await fs.copy(src, temp);
+				
+				const args = [
+					"--admin_key",
+					admin_key,
+					"--server_name",
+					server_name,
+					"--config_base",
+					temp,
+					"--ws_port",
+					ws_port,
+					"--admin_ws_port",
+					admin_ws_port,
+					"--log_prefix",
+					log_prefix
+				];
+				
+				const command = `./configure ${args.join(" ")}`;
+				*/
+
+				/*
 				for(let i = 0; i < instances.length; i++) {
 					instances[i].ps = launchDocker2(instances[i]);
 					folders.push(instances[i].ps.temp);
@@ -385,10 +471,11 @@ describe(
 				})
 
 				console.log('ready to start janus');
-				/*const instance = launchJanus({
-					config: `${local_config_folder}/janus.jcfg`, 
-					config_folder: `${local_config_folder}`
-				});*/
+				
+				//const instance = launchJanus({
+				//	config: `${local_config_folder}/janus.jcfg`, 
+				//	config_folder: `${local_config_folder}`
+				//});
 				
 				await pause(1500);
 				
@@ -409,9 +496,9 @@ describe(
 						return instance;
 
 					},
-					onConnected:(instances) => {
+					onConnected:() => {
 						
-						console.log(instances);
+						//console.log(instances);
 						
 					},
 					onDisconnected:() => {
@@ -453,17 +540,12 @@ describe(
 					}
 					janus.terminate();
 				}
-				
+				*/
 				//await launchClient("publisher", "husky_cif.y4m");
 				//await janus.dispose();
-
 				//instance.stdin.pause();
-
 				//instance.kill();
-				
-				
 				//await pause(1500);
-
 				//await launchClient("publisher", "sign_irene_qcif.y4m");	
 			}
 		);

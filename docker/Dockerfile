@@ -43,3 +43,7 @@ RUN apt-get update \
 	&& apt-get purge -y git libssl-dev libglib2.0-dev libopus-dev libogg-dev libtool libmicrohttpd-dev wget build-essential cmake golang pkg-config gengetopt libtool automake \
 	&& apt-mark manual libconfig9 libwebsockets15 libnice10 libconfig-dev libwebsockets-dev libjansson-dev libnice-dev libcurl4-openssl-dev \
 	&& apt-get autoremove -y
+
+COPY start.sh start.sh
+
+ENTRYPOINT ["/start.sh"]
