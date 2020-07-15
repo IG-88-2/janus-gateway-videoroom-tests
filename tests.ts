@@ -19,28 +19,32 @@ const pause = (n:number) => new Promise((resolve) => setTimeout(() => resolve(),
 const logger = {
 	info : (message) => {
 
-		console.log("\x1b[32m", message);
+		console.log("\x1b[32m", `[test] ${message}`);
+
 	},
 	browser : (message) => {
 
-		console.log("\x1b[33m", message);
+		console.log("\x1b[33m", `[test] ${message}`);
+
 	},
 	error : (message) => {
 
 		if (typeof message==="string") {
-			console.log("\x1b[31m", message);
+			console.log("\x1b[31m", `[test] ${message}`);
 		} else {
 			try {
 				const string = JSON.stringify(message, null, 2);
-				console.log("\x1b[31m", string);
+				console.log("\x1b[31m", `[test] ${string}`);
 			} catch(error) {}
 		}
+
 	},
 	json : (object) => {
 
 		const string = JSON.stringify(object, null, 2); 
 
-		console.log("\x1b[37m", string);
+		console.log("\x1b[37m", `[test] ${string}`);
+
 	}
 };
 
@@ -56,15 +60,14 @@ const generateInstances = (amount:number) => {
 		instances.push({
 			id : uuidv1(),
 			admin_key : uuidv1(),
-			server_name : `instance ${i}`,
-			log_prefix : `instance ${i}: `,
+			server_name : `instance_${i}`,
+			log_prefix : `instance_${i}:`,
 			docker_ip : `127.0.0.${1 + i}`, //"127.0.0.1", 
 			ws_port : start_ws_port + i,
 			admin_ws_port : start_admin_ws_port + i,
 			stun_server : "stun.voip.eutelia.it",
 			stun_port : 3478,
-			debug_level : 6,
-			ps : null
+			debug_level : 6
 		});
 	}
 	
@@ -177,15 +180,15 @@ const launchContainers = (image, instances) => {
 			[ "LOG_PREFIX", log_prefix ],
 			[ "DOCKER_IP", docker_ip ],
 			[ "DEBUG_LEVEL", debug_level ],
-			[ "RTP_PORT_RANGE", `${udpEnd}-${udpStart}` ],
+			[ "RTP_PORT_RANGE", `${udpStart}-${udpEnd}` ],
 			[ "STUN_SERVER", stun_server ],
 			[ "STUN_PORT", stun_port ]
 		];
 		
-		let command = `docker run -i --cap-add=NET_ADMIN `;
+		let command = `docker run -i --cap-add=NET_ADMIN --name ${server_name} `;
 		//--publish-all=true
-		//-P 
-		//--network=host 
+		//-P
+		//--network=host
 		//-p 127.0.0.1:20000-40000:20000-40000
 		//command += `-p 127.0.0.1:${udpStart}-${udpEnd}:${udpStart}-${udpEnd}/udp `;
 		command += `-p ${docker_ip}:${udpStart}-${udpEnd}:${udpStart}-${udpEnd}/udp `;
@@ -193,8 +196,10 @@ const launchContainers = (image, instances) => {
 		command += `-p ${admin_ws_port}:${admin_ws_port} `;
 		command += `${args.map(([name,value]) => `-e ${name}="${value}"`).join(' ')} `;
 		command += `${image}`;
-			
-		instances[i].ps = exec(
+		
+		logger.info(`launching container ${i}...${command}`);
+
+		exec(
 			command,
 			(error, stdout, stderr) => {
 				
@@ -283,7 +288,7 @@ describe(
 
 				await launchServer();
 				
-				const instances = generateInstances(5);
+				const instances = generateInstances(1);
 				
 				launchContainers('janus-gateway', instances);
 
@@ -303,6 +308,8 @@ describe(
 						
 						let instance = sorted[0];
 
+						logger.info(`selected instance ${JSON.stringify(instance)}`);
+						
 						return instance;
 
 					},
