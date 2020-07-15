@@ -2,104 +2,73 @@ import * as mocha from 'mocha';
 import * as express from 'express';
 import Janus from './janus-gateway-node/lib/janus-gateway-node';
 import { v1 as uuidv1 } from 'uuid';
-import { spawnSync, exec } from 'child_process';
-const { spawn, execSync } = require('child_process');
+import { exec } from 'child_process';
 const expect = require(`chai`).expect;
-const fs = require(`fs-extra`);
 const path = require(`path`);
 const http = require('http');
 const puppeteer = require('puppeteer');
 const bodyParser = require('body-parser');
-const Docker = require('dockerode');
 const port = 3000;
 
-//TODO 
-//move configure to repo
-//add configure program inclusion to docker script 
 
-//during container execution
-//duplicate configuration in temp space
-//modify configuration using configure program (using env variables)
-//launch janus pointing to modified configuration
-
-//how do i setup env variables when launching docker container ?
-//how do i access/use them inside ?
 
 const pause = (n:number) => new Promise((resolve) => setTimeout(() => resolve(), n));
 
 
-const launchJanus = async ({
-	admin_key,
-	server_name,
-	ws_port,
-	admin_ws_port,
-	log_prefix
-}) => {
-	
-	const temp = `${__dirname}/${uuidv1()}`;
 
-	const src = "/opt/janus/etc/janus";
+const logger = {
+	info : (message) => {
 
-	const program = "/opt/janus/bin/janus";
+		console.log("\x1b[32m", message);
+	},
+	browser : (message) => {
 
-	await fs.copy(src, temp);
+		console.log("\x1b[33m", message);
+	},
+	error : (message) => {
 
-	console.log(`copying files from ${src} to ${temp}`);
+		if (typeof message==="string") {
+			console.log("\x1b[31m", message);
+		} else {
+			try {
+				const string = JSON.stringify(message, null, 2);
+				console.log("\x1b[31m", string);
+			} catch(error) {}
+		}
+	},
+	json : (object) => {
 
-	const args = [
-		"--admin_key",
-		admin_key,
-		"--server_name",
-		server_name,
-		"--config_base",
-		temp,
-		"--ws_port",
-		ws_port,
-		"--admin_ws_port",
-		admin_ws_port,
-		"--log_prefix",
-		log_prefix
-	];
-	
-	const command = `./configure ${args.join(" ")}`;
+		const string = JSON.stringify(object, null, 2); 
 
-	console.log(command);
+		console.log("\x1b[37m", string);
+	}
+};
 
-	try {
 
-		const result = execSync(
-			command,
-			{
-				stdio: 'inherit'
-			}
-		);
 
-	} catch(error) {
+const generateInstances = (amount:number) => {
 
-		console.error(error);
+	const instances = [];
+	const start_ws_port = 8188;
+	const start_admin_ws_port = 7188;
 
+	for(let i = 0; i < amount; i++) {
+		instances.push({
+			id : uuidv1(),
+			admin_key : uuidv1(),
+			server_name : `instance ${i}`,
+			log_prefix : `instance ${i}: `,
+			docker_ip : `127.0.0.${1 + i}`, //"127.0.0.1", 
+			ws_port : start_ws_port + i,
+			admin_ws_port : start_admin_ws_port + i,
+			stun_server : "stun.voip.eutelia.it",
+			stun_port : 3478,
+			debug_level : 6,
+			ps : null
+		});
 	}
 	
-	const janus = spawn(program, [
-		`--configs-folder=${temp}`
-	]);
-
-	janus.stdout.on('data', (data) => {
-		console.log(`stdout: ${data}`);
-	});
-
-	janus.stderr.on('data', (data) => {
-		console.error(`stderr: ${data}`);
-	});
-
-	janus.on('close', (code) => {
-		console.log(`child process exited with code ${code}`);
-	});
-	
-	janus.temp = temp;
-
-	return janus;
-
+	return instances;
 };
 
 
@@ -127,187 +96,172 @@ const launchServer = () => {
 	return new Promise((resolve) => {
 
 		httpServer.listen(port, () => {
-		
-			console.log('connected');
+
+			logger.info(`server listening on port ${port}`);
 
 			resolve();
 	
 		});
-
 	});
-	
 };
 
 
 
-const launchClient = async (type, video) => {
+const launchClient = async (type, headless, video) => {
+	
+	const mocksFolder = `C:\\Users\\clint\\Downloads\\mocks\\`;
 
-  const browser = await puppeteer.launch({
-    headless: true, //false,
-    args: [
+	const flags = [
 		'--ignore-certificate-errors',
 		'--no-sandbox',
 		'--use-fake-ui-for-media-stream',
 		'--use-fake-device-for-media-stream',
-		`--use-file-for-fake-video-capture=/home/herbert/Downloads/${video}`
-    ]
-  });
+		`--use-file-for-fake-video-capture=${mocksFolder}${video}`
+	];
 
-  const debug = await browser.newPage();
+	const browser = await puppeteer.launch({ headless, args: flags });
 
-  const client = await browser.newPage();
-  
-  await debug.goto(`chrome://webrtc-internals/`);
+	const debug = await browser.newPage();
 
-  await client.goto(`http://localhost:${port}/?type=${type}`);
+	const client = await browser.newPage();
 
-  client.on('console', msg => {
-	  
-	console.log('BROWSER', msg.text());
-	
-  });
+	await debug.goto(`chrome://webrtc-internals/`);
 
-  await client.evaluate(() => console.log(`url is ${location.href}`));
-  
-  return browser;
-  
+	await client.goto(`http://localhost:${port}/?type=${type}`);
+
+	client.on('console', msg => {
+
+		logger.browser(`message from browser: ${msg.text()}`);
+		
+	});
+
+	//await client.evaluate(() => {});
+
+	return browser;
 };
 
 
 
-const launchDocker = async ({
-	admin_key,
-	server_name,
-	ws_port,
-	log_prefix,
-	admin_ws_port,
-	ps
-}) => {
+const launchContainers = (image, instances) => {
 
-	const docker = new Docker();
+	logger.info(`launching ${instances.length} containers`);
 
-	try {
+	logger.json(instances);
 
-		const p1 = `${ws_port}/tcp`;
-		const p2 = `${admin_ws_port}/tcp`;
+	const step = 101;
 
-		const container = await docker.createContainer({
-			Image: 'janus-gateway-videoroom',
-			Tty: true,
-			HostConfig: {
-				PortBindings: {
-					[p1]: [{ HostPort: `${ws_port}` }],
-					[p2]: [{ HostPort: `${admin_ws_port}` }],
-				}
-			}
-		});
+	let udpStart = 20000;
 
-		await container.start();
+	let udpEnd = udpStart + step - 1;
 
-		/*
-		const temp = `${__dirname}/${uuidv1()}`;
-
-		const src = "/opt/janus/etc/janus";
-	
-		const program = "/opt/janus/bin/janus";
-	
-		await fs.copy(src, temp);
+	for(let i = 0; i < instances.length; i++) {
+		const {
+			id,
+			admin_key,
+			server_name,
+			ws_port,
+			log_prefix,
+			admin_ws_port,
+			stun_server, 
+			stun_port,
+			docker_ip,
+			debug_level
+		} = instances[i];
 		
 		const args = [
-			"--admin_key",
-			admin_key,
-			"--server_name",
-			server_name,
-			"--config_base",
-			temp,
-			"--ws_port",
-			ws_port,
-			"--admin_ws_port",
-			admin_ws_port,
-			"--log_prefix",
-			log_prefix
+			[ "ID", id ],
+			[ "ADMIN_KEY", admin_key ],
+			[ "SERVER_NAME", server_name ],
+			[ "WS_PORT", ws_port ],
+			[ "ADMIN_WS_PORT", admin_ws_port ],
+			[ "LOG_PREFIX", log_prefix ],
+			[ "DOCKER_IP", docker_ip ],
+			[ "DEBUG_LEVEL", debug_level ],
+			[ "RTP_PORT_RANGE", `${udpEnd}-${udpStart}` ],
+			[ "STUN_SERVER", stun_server ],
+			[ "STUN_PORT", stun_port ]
 		];
 		
-		const command = `./configure ${args.join(" ")}`;
-		*/
-		
-		const result = await container.exec({
-			Cmd: ['/bin/sh', '-c', 'cd /opt/janus/bin/ && ./janus'],
-			Env: [], //'VAR=ttslkfjsdalkfj'
-			AttachStdout: true,
-			AttachStderr: true
-		});
-
-		result.start((error, stream) => {
-
-			if (error) {
-				return;
-			}
-
-			stream.on('end', (e) => {
-
-				console.log('on end', e);
-
-			});
-
-			stream.on('data', (d) => {
-
-				console.log('on data', d.toString('utf8'));
-
-			});
+		let command = `docker run -i --cap-add=NET_ADMIN `;
+		//--publish-all=true
+		//-P 
+		//--network=host 
+		//-p 127.0.0.1:20000-40000:20000-40000
+		//command += `-p 127.0.0.1:${udpStart}-${udpEnd}:${udpStart}-${udpEnd}/udp `;
+		command += `-p ${docker_ip}:${udpStart}-${udpEnd}:${udpStart}-${udpEnd}/udp `;
+		command += `-p ${ws_port}:${ws_port} `;
+		command += `-p ${admin_ws_port}:${admin_ws_port} `;
+		command += `${args.map(([name,value]) => `-e ${name}="${value}"`).join(' ')} `;
+		command += `${image}`;
 			
-		});
-		
-		//await pause(20000);
-		//await container.stop();
-		//await container.remove();
+		instances[i].ps = exec(
+			command,
+			(error, stdout, stderr) => {
+				
+				logger.info(`container ${server_name} terminated`);
 
-		return container;
+				if (error) {
+					if (error.message) {
+						logger.error(error.message);
+					} else {
+						logger.error(error);
+					}
+				}
+			}
+		);
 
-	} catch(error) {
-
-		console.error(error);
+		udpStart += step;
+		udpEnd += step;
 	}
 };
 
 
-const launchDocker2 = ({
-	admin_key,
-	server_name,
-	ws_port,
-	log_prefix,
-	admin_ws_port,
-	ps
-}) => {
 
-	const command = `docker`; //bash,  -it
+const terminateContainers = async () => {
+
+	const command = `FOR /F %A IN ('docker ps -q') DO docker stop %~A`; //`docker stop $(docker ps -a -q)`;
 
 	try {
-		const ps = spawn(
-			command, 
-			[
-				`run`, 
-				`-i`, 
-				`-p`, 
-				`${ws_port}:${ws_port}`, 
-				`-p`, 
-				`${admin_ws_port}:${admin_ws_port}`, 
-				`f9af8d15f217`, 
-				`/bin/sh`, 
-				`-c`, 
-				"cd /opt/janus/bin/ && ./janus"
-			]
-			/*{
-				stdio: 'inherit'
-			}*/
+
+		const result = await exec(
+			command
 		);
-		console.log(ps);
-		return ps;
+
 	} catch(error) {
-		console.error(error);
-		return null;
+
+		
+
 	}
-}
+};
+
+
+
+const instancesToConfigurations = (instances) => {
+
+	const data = instances.map(({
+		admin_key,
+		server_name,
+		ws_port,
+		docker_ip,
+		admin_ws_port,
+		log_prefix,
+		stun_server, 
+		stun_port,
+		id,
+		debug_level
+	}) => {
+		return {
+			protocol: `ws`,
+			address: docker_ip,
+			port: ws_port,
+			adminPort: admin_ws_port,
+			adminKey: admin_key,
+			server_name
+		};
+	});
+
+	return data;
+};
 
 
 
@@ -315,24 +269,9 @@ describe(
 	`publishing`,
 	() => {
 
-		after(() => {
+		after(async () => {
 			
-			const command = `docker ps -a -q | docker stop`; //`docker stop $(docker ps -a -q)`;
-
-			try {
-
-				const result = execSync(
-					command,
-					{
-						stdio: 'inherit'
-					}
-				);
-		
-			} catch(error) {
-		
-				console.error(`failed to execute command after`, error);
-		
-			}
+			await terminateContainers();
 
 		});
 
@@ -341,146 +280,19 @@ describe(
 			async function() {
 
 				this.timeout(0);
-				
-				const instances = [
-					{
-						admin_key : uuidv1(),
-						server_name : `instance1`,
-						ws_port : 8188,
-						log_prefix : `instance1: `,
-						admin_ws_port : 7188,
-						ps : null
-					},
-					{
-						admin_key : uuidv1(),
-						server_name : `instance2`,
-						ws_port : 8189,
-						log_prefix : `instance2: `,
-						admin_ws_port : 7189,
-						ps : null
-					}
-				];
-				
-				for(let i = 0; i < instances.length; i++) {
-					console.log(`ready to execute command ${i}`);
 
-					const {
-						admin_key,
-						server_name,
-						ws_port,
-						log_prefix,
-						admin_ws_port
-					} = instances[i];
-					
-					const args = [
-						[ "ID", uuidv1() ],
-						[ "ADMIN_KEY", admin_key ],
-						[ "SERVER_NAME", server_name ],
-						[ "WS_PORT", ws_port ],
-						[ "ADMIN_WS_PORT", admin_ws_port ],
-						[ "LOG_PREFIX", log_prefix ]
-					];
+				await launchServer();
+				
+				const instances = generateInstances(5);
+				
+				launchContainers('janus-gateway', instances);
 
-					const image = '88d29c8004b1';
+				const configs = instancesToConfigurations(instances);
 
-					let command = `docker run -i `;
-					
-					command += `-p ${ws_port}:${ws_port} `;
-					command += `-p ${admin_ws_port}:${admin_ws_port} `;
-					command += `${args.map(([name,value]) => `-e ${name}="${value}"`).join(' ')} `; 
-					command += `${image}`;
-					
-					try {
-
-						const result = exec(
-							command,
-							(error, stdout, stderr) => {
-
-								console.log(`done for ${i}`, error);
-
-							}
-						);
-				
-					} catch(error) {
-				
-						console.error(`failed to execute command ${i}`, error);
-				
-					}
-				}
-				
-				await pause(1500);
-
-				//cp -a /opt/janus/etc/janus/. /$ADMIN_KEY-2
-				
-				//const temp = `${__dirname}/${uuidv1()}`;
-				//const src = "/opt/janus/etc/janus";
-				//const program = "/opt/janus/bin/janus";
-				//await fs.copy(src, temp);
-				//[ "CONFIG_BASE", temp ],
-				
-				/*
-				const temp = `${__dirname}/${uuidv1()}`;
-
-				const src = "/opt/janus/etc/janus";
-			
-				const program = "/opt/janus/bin/janus";
-			
-				await fs.copy(src, temp);
-				
-				const args = [
-					"--admin_key",
-					admin_key,
-					"--server_name",
-					server_name,
-					"--config_base",
-					temp,
-					"--ws_port",
-					ws_port,
-					"--admin_ws_port",
-					admin_ws_port,
-					"--log_prefix",
-					log_prefix
-				];
-				
-				const command = `./configure ${args.join(" ")}`;
-				*/
-
-				/*
-				for(let i = 0; i < instances.length; i++) {
-					instances[i].ps = launchDocker2(instances[i]);
-					folders.push(instances[i].ps.temp);
-				}
-				
-				const data = instances.map(({
-					admin_key,
-					server_name,
-					ws_port,
-					log_prefix,
-					admin_ws_port,
-					ps
-				}) => {
-					return {
-						protocol: `ws`,
-						address: `127.0.0.1`,
-						port: ws_port,
-						adminPort: admin_ws_port,
-						adminKey: admin_key,
-						ps,
-						server_name
-					};
-				})
-
-				console.log('ready to start janus');
-				
-				//const instance = launchJanus({
-				//	config: `${local_config_folder}/janus.jcfg`, 
-				//	config_folder: `${local_config_folder}`
-				//});
-				
-				await pause(1500);
+				await pause(3000);
 				
 				const janus = new Janus({
-					instances: data,
+					instances: configs,
 					selectInstance:(instances) => {
 
 						const sorted = instances.sort((a,b) => {
@@ -488,27 +300,25 @@ describe(
 							const bHandles = Object.values(b.handles);
 							return aHandles.length - bHandles.length;
 						});
-				
-						console.log(`sorted`, sorted, sorted.map((i) => i.activeHandles));
 						
 						let instance = sorted[0];
-				
+
 						return instance;
 
 					},
 					onConnected:() => {
 						
-						//console.log(instances);
+
 						
 					},
 					onDisconnected:() => {
 						
-						console.log('disconnected');
+						
 
 					},
 					onError: (error) => {
 						
-						console.log('error', error);
+						
 
 					}
 				});
@@ -521,32 +331,17 @@ describe(
 						description: "afawfawgawgaw"
 					}
 				});
-
-				console.log(instances);
 				
 				await pause(1500);
 				
-				await launchClient("publisher", "husky_cif.y4m");
+				await launchClient("publisher", false, "husky_cif.y4m");
 				
 				await pause(1500);
 
-				//await launchClient("publisher", "sign_irene_qcif.y4m");
+				await launchClient("publisher", false, "akiyo_cif.y4m");
 
-				await pause(50000);
+				await pause(60000);
 				
-				for(let i = 0; i < instances.length; i++) {
-					if (instances[i].ps) {
-						instances[i].ps.kill();
-					}
-					janus.terminate();
-				}
-				*/
-				//await launchClient("publisher", "husky_cif.y4m");
-				//await janus.dispose();
-				//instance.stdin.pause();
-				//instance.kill();
-				//await pause(1500);
-				//await launchClient("publisher", "sign_irene_qcif.y4m");	
 			}
 		);
 	}
