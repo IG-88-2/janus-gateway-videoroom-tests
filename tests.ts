@@ -67,7 +67,7 @@ const generateInstances = (amount:number) => {
 			admin_ws_port : start_admin_ws_port + i,
 			stun_server : "stun.voip.eutelia.it",
 			stun_port : 3478,
-			debug_level : 6
+			debug_level : 5 //6
 		});
 	}
 	
@@ -110,16 +110,16 @@ const launchServer = () => {
 
 
 
-const launchClient = async (type, headless, video) => {
+const launchClient = async (headless, video, user_id) => {
 	
-	const mocksFolder = `C:\\Users\\clint\\Downloads\\mocks\\`;
+	const mocksFolder = `C:\\Users\\clint\\Downloads\\mocks`;
 
 	const flags = [
 		'--ignore-certificate-errors',
 		'--no-sandbox',
 		'--use-fake-ui-for-media-stream',
 		'--use-fake-device-for-media-stream',
-		`--use-file-for-fake-video-capture=${mocksFolder}${video}`
+		`--use-file-for-fake-video-capture=${mocksFolder}\\${video}`
 	];
 
 	const browser = await puppeteer.launch({ headless, args: flags });
@@ -130,7 +130,11 @@ const launchClient = async (type, headless, video) => {
 
 	await debug.goto(`chrome://webrtc-internals/`);
 
-	await client.goto(`http://localhost:${port}/?type=${type}`);
+	const p = 8080;
+
+	const host = `127.0.0.1`;
+
+	await client.goto(`http://localhost:${port}?search&user_id=${user_id}&host=${host}&port=${p}`);
 
 	client.on('console', msg => {
 
@@ -201,6 +205,9 @@ const launchContainers = (image, instances) => {
 
 		exec(
 			command,
+			{
+				maxBuffer: 1024 * 1024 * 1024
+			},
 			(error, stdout, stderr) => {
 				
 				logger.info(`container ${server_name} terminated`);
@@ -307,8 +314,6 @@ describe(
 						});
 						
 						let instance = sorted[0];
-
-						logger.info(`selected instance ${JSON.stringify(instance)}`);
 						
 						return instance;
 
@@ -331,24 +336,14 @@ describe(
 				});
 				
 				await janus.initialize();
-
-				const result = await janus.createRoom({
-					type:'create_room',
-					load: { 
-						description: "afawfawgawgaw"
-					}
-				});
 				
 				await pause(1500);
 				
-				await launchClient("publisher", false, "husky_cif.y4m");
-				
-				await pause(1500);
+				await launchClient(false, "husky_cif.y4m", 13);
 
-				await launchClient("publisher", false, "akiyo_cif.y4m");
-
-				await pause(60000);
+				await launchClient(false, "flower_cif.y4m", 14);
 				
+				await pause(800000);
 			}
 		);
 	}
