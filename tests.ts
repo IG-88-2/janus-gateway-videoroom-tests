@@ -19,16 +19,17 @@ const pause = (n:number) => new Promise((resolve) => setTimeout(() => resolve(),
 const logger = {
 	info : (message) => {
 
-		console.log("\x1b[32m", `[test] ${message}`);
+		//console.log("\x1b[32m", `[test] ${message}`);
 
 	},
 	browser : (message) => {
 
-		console.log("\x1b[33m", `[test] ${message}`);
+		//console.log("\x1b[33m", `[test] ${message}`);
 
 	},
 	error : (message) => {
 
+		/*
 		if (typeof message==="string") {
 			console.log("\x1b[31m", `[test] ${message}`);
 		} else {
@@ -37,13 +38,14 @@ const logger = {
 				console.log("\x1b[31m", `[test] ${string}`);
 			} catch(error) {}
 		}
+		*/
 
 	},
 	json : (object) => {
 
-		const string = JSON.stringify(object, null, 2); 
+		//const string = JSON.stringify(object, null, 2); 
 
-		console.log("\x1b[37m", `[test] ${string}`);
+		//console.log("\x1b[37m", `[test] ${string}`);
 
 	}
 };
