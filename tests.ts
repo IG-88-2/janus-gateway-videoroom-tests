@@ -3,59 +3,140 @@ import * as express from 'express';
 import Janus from './janus-gateway-node/lib/janus-gateway-node';
 import { v1 as uuidv1 } from 'uuid';
 import { exec } from 'child_process';
+const pause = (n:number) => new Promise((resolve) => setTimeout(() => resolve(), n));
 const expect = require(`chai`).expect;
 const path = require(`path`);
 const http = require('http');
 const puppeteer = require('puppeteer');
 const bodyParser = require('body-parser');
 const port = 3000;
+const fs = require('fs');
+const util = require('util');
+const logFile = fs.createWriteStream(__dirname + '/test.log', { flags : 'w' });
 
 
 
-const pause = (n:number) => new Promise((resolve) => setTimeout(() => resolve(), n));
+let enable = true;
 
 
 
 const logger = {
+	enable: () => {
+
+        enable = true;
+    
+    },
+    disable: () => {
+    
+        enable = false;
+    
+    },
 	info : (message) => {
 
-		//console.log("\x1b[32m", `[test] ${message}`);
+		if (enable) {
+			console.log("\x1b[32m", `[test info] ${message}`);
+			logFile.write(util.format(message) + '\n');
+		}
 
 	},
-	browser : (message) => {
+	browser : (...args) => {
 
-		//console.log("\x1b[33m", `[test] ${message}`);
+		if (enable) {
+			if (args) {
+				const message = args.join(' ');
+				console.log("\x1b[33m", `[test browser] ${message}`);
+				logFile.write(util.format(message) + '\n');
+			}
+		}
 
 	},
 	error : (message) => {
-
-		/*
-		if (typeof message==="string") {
-			console.log("\x1b[31m", `[test] ${message}`);
-		} else {
-			try {
-				const string = JSON.stringify(message, null, 2);
-				console.log("\x1b[31m", `[test] ${string}`);
-			} catch(error) {}
+		
+		if (enable) {
+			if (typeof message==="string") {
+				console.log("\x1b[31m", `[test error] ${message}`);
+				logFile.write(util.format(message) + '\n');
+			} else {
+				try {
+					const string = JSON.stringify(message, null, 2);
+					console.log("\x1b[31m", `[test error] ${string}`);
+					logFile.write(util.format(string) + '\n');
+				} catch(error) {}
+			}
 		}
-		*/
 
 	},
 	json : (object) => {
 
-		//const string = JSON.stringify(object, null, 2); 
-
-		//console.log("\x1b[37m", `[test] ${string}`);
+		if (enable) {
+			const string = JSON.stringify(object, null, 2);
+			console.log("\x1b[37m", `[test json] ${string}`);
+			logFile.write(util.format(string) + '\n');
+		}
 
 	}
 };
 
 
 
+const click = async (client, query) => {
+
+	await client.waitForSelector(query);
+
+	await pause(500);
+
+	const target = (await client.$$(query))[0];
+
+	await target.click();
+
+	await pause(500);
+
+	return target;
+
+}
+
+
+
+const getRooms = async (client, query) => {
+
+	const rooms = (await client.$$(query));
+
+	const roomsText = [];
+
+	for(let i = 0; i < rooms.length; i++) {
+
+		const element = rooms[i];
+
+		const text = await client.evaluate((element) => {
+			
+			return element.textContent;
+			
+		}, element);
+
+		roomsText.push(text);
+
+	}
+
+	return roomsText;
+
+}
+
+
+
+const connected = async (client) => {
+	
+	await client.waitForSelector('.room-element');
+		
+}
+
+
+
 const generateInstances = (amount:number) => {
 
 	const instances = [];
+
 	const start_ws_port = 8188;
+
 	const start_admin_ws_port = 7188;
 
 	for(let i = 0; i < amount; i++) {
@@ -74,6 +155,7 @@ const generateInstances = (amount:number) => {
 	}
 	
 	return instances;
+
 };
 
 
@@ -107,21 +189,30 @@ const launchServer = () => {
 			resolve();
 	
 		});
+
 	});
+
 };
+
+
+
+const mocksFolder = `C:\\Users\\clint\\Downloads\\mocks`;
 
 
 
 const launchClient = async (headless, video, user_id) => {
 	
-	const mocksFolder = `C:\\Users\\clint\\Downloads\\mocks`;
+	const width = 950;
+
+	const height = 900;
 
 	const flags = [
 		'--ignore-certificate-errors',
 		'--no-sandbox',
 		'--use-fake-ui-for-media-stream',
 		'--use-fake-device-for-media-stream',
-		`--use-file-for-fake-video-capture=${mocksFolder}\\${video}`
+		`--window-size=${width},${height}`,
+		`--use-file-for-fake-video-capture=${video}`
 	];
 
 	const browser = await puppeteer.launch({ headless, args: flags });
@@ -137,16 +228,24 @@ const launchClient = async (headless, video, user_id) => {
 	const host = `127.0.0.1`;
 
 	await client.goto(`http://localhost:${port}?search&user_id=${user_id}&host=${host}&port=${p}`);
+	
+	await client.setViewport({ width, height });
 
-	client.on('console', msg => {
+	client.on('console', async (e) => {
 
-		logger.browser(`message from browser: ${msg.text()}`);
+		const args = await Promise.all(e.args().map((a) => a.jsonValue()));
+
+		logger.browser(...args);
 		
 	});
 
 	//await client.evaluate(() => {});
 
-	return browser;
+	return { 
+		browser, 
+		client 
+	};
+
 };
 
 
@@ -221,19 +320,23 @@ const launchContainers = (image, instances) => {
 						logger.error(error);
 					}
 				}
+
 			}
 		);
 
 		udpStart += step;
 		udpEnd += step;
 	}
+
 };
 
 
 
 const terminateContainers = async () => {
 
-	const command = `FOR /F %A IN ('docker ps -q') DO docker stop %~A`; //`docker stop $(docker ps -a -q)`;
+	const command = `FOR /F %A IN ('docker ps -q') DO docker rm -f %~A`; //docker stop
+
+	//docker rm $(docker ps -a -q)
 
 	try {
 
@@ -241,11 +344,8 @@ const terminateContainers = async () => {
 			command
 		);
 
-	} catch(error) {
+	} catch(error) {}
 
-		
-
-	}
 };
 
 
@@ -275,29 +375,140 @@ const instancesToConfigurations = (instances) => {
 	});
 
 	return data;
+
 };
 
 
 
+const retrieveContext = () => {
+
+	try {
+
+		const contextPath = path.resolve('context.json');
+
+		const file = fs.readFileSync(contextPath, 'utf-8');
+
+		const context = JSON.parse(file);
+
+		logger.info('context loaded');
+
+		logger.json(context);
+
+		return context;
+
+	} catch(error) {
+
+		logger.error(error);
+
+		return {};
+
+	}
+
+};
+
+
+
+const updateContext = async (rooms) => {
+
+	try {
+		
+		const contextPath = path.resolve('context.json');
+
+		const file = JSON.stringify(rooms);
+
+		logger.info('update context');
+
+		logger.json(rooms);
+
+		const fsp = fs.promises;
+
+		await fsp.writeFile(contextPath, file, 'utf8');
+		
+	} catch(error) {
+
+		logger.error(error);
+		
+	}
+
+	return rooms;
+
+};
+
+
+
+const mockVideos = fs.readdirSync(mocksFolder)
+.filter((entry) => {
+
+	const extension = entry.split('.').pop();
+
+	return extension==='y4m';
+
+});
+
+
+
+let counter = 0;
+
+
+
+const getNextMockVideoPath = () => {
+
+	let next = mockVideos[counter];
+
+	if (!next) {
+		counter = 0;
+		next = mockVideos[counter];
+	}
+
+	counter++;
+	
+	return path.resolve(mocksFolder, next);
+
+}
+
+
+
+const getRoomsFromFirstClient = async (ps) => {
+
+	const { client } = await ps[0];
+
+	await click(client, '#connect');
+
+	await connected(client);
+
+	let rooms = await getRooms(client, '.room-id');
+
+	await click(client, '#disconnect');
+
+	rooms = rooms.filter((room_id) => room_id.length > 5);
+
+	return rooms;
+
+}
+
+
+
 describe(
-	`publishing`,
+	`test`,
 	() => {
-
-		after(async () => {
-			
-			await terminateContainers();
-
-		});
-
+		
 		it(
-		   `initial connection`,
+		   `test`,
 			async function() {
 
 				this.timeout(0);
 
+				const publishers = 6;
+
+				const nInstances = 2;
+				
+				const nRooms = 1;
+
+				const nClients = nRooms * publishers;
+
 				await launchServer();
 				
-				const instances = generateInstances(1);
+				const instances = generateInstances(nInstances);
 				
 				launchContainers('janus-gateway', instances);
 
@@ -307,32 +518,22 @@ describe(
 				
 				const janus = new Janus({
 					instances: configs,
-					selectInstance:(instances) => {
-
-						const sorted = instances.sort((a,b) => {
-							const aHandles = Object.values(a.handles);
-							const bHandles = Object.values(b.handles);
-							return aHandles.length - bHandles.length;
-						});
+					retrieveContext, 
+					updateContext,
+					logger,
+					onConnected : () => {
 						
-						let instance = sorted[0];
-						
-						return instance;
-
-					},
-					onConnected:() => {
-						
-
+						logger.info(`janus - connected`);
 						
 					},
-					onDisconnected:() => {
+					onDisconnected : () => {
 						
-						
+						logger.info(`janus - disconnected`);
 
 					},
-					onError: (error) => {
+					onError : (error) => {
 						
-						
+						logger.error(error);
 
 					}
 				});
@@ -341,11 +542,64 @@ describe(
 				
 				await pause(1500);
 				
-				await launchClient(false, "husky_cif.y4m", 13);
-
-				await launchClient(false, "flower_cif.y4m", 14);
+				for(let i = 0; i < nRooms; i++) {
+					const result = await janus.createRoom({
+						load: {
+							description: uuidv1()
+						}
+					});
+					logger.json(result);
+				}
 				
-				await pause(800000);
+				const ps = [];
+
+				for(let i = 0; i < nClients; i++) {
+					const p = getNextMockVideoPath();
+					logger.info(p);
+					ps.push(
+						launchClient(false, p, i)
+					);
+				}
+
+				await Promise.all(ps);
+				
+				const rooms = await getRoomsFromFirstClient(ps);
+
+				await pause(1000);
+
+				const f = async (id, client, interval) => {
+					await click(client, '#connect');
+					await connected(client);
+					await pause(300);
+					await click(client, `#join-${id}`);
+					await pause(interval);
+					await click(client, `#leave-${id}`);
+					await pause(2000);
+					await click(client, '#disconnect');
+				};
+
+				const list = [];
+				
+				for(let i = 0; i < rooms.length; i++) {
+					const id = rooms[i];
+					const start = i * publishers;
+					for(let j = start; j < start + publishers; j++) {
+						const { client } = await ps[j];
+						const p = f(id, client, 60000);
+						list.push(p);
+					}
+				}
+
+				await Promise.all(list);
+
+				for(let i = 0; i < nClients; i++) {
+					const { browser } = await ps[i];
+					await browser.close();
+				}
+
+				await janus.terminate();
+
+				await terminateContainers();
 			}
 		);
 	}

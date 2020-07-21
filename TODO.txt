@@ -1,17 +1,6 @@
-TODO add instance, remove instance
-TODO how i should configure logger ? check out other open source solutions, how they do it ?
-TODO increase memory limit node --max-old-space-size=4096 server.js
-TODO remove all sync calls
-TODO when creating room from client side add ability to select instance
-TODO factor out context preserver (to store keys)
-TODO profile node memory usage
-TODO retrieve janus resources usage
-TODO parse and modify janus config
-TODO store participants inside RoomContext
 TODO notify all related users through push event about room destruction
-TODO store handles inside room context ?
 TODO make use of accept new sessions when things turn nasty on any of instances
-TODO request load level to locate the least loaded instance, use ADMIN api to fetch handles
+TODO modify to use in cluster mode
+TODO improve load balancing for instances
 TODO set max publishers to 6
-TODO disable unnecessary plugins
-TODO renegotiation - add track remove track
+TODO add shared key storage
