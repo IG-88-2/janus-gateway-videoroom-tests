@@ -1,6 +1,6 @@
+TODO remove room
 TODO notify all related users through push event about room destruction
 TODO make use of accept new sessions when things turn nasty on any of instances
 TODO modify to use in cluster mode
 TODO improve load balancing for instances
-TODO set max publishers to 6
 TODO add shared key storage

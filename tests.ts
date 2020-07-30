@@ -1,6 +1,6 @@
 import * as mocha from 'mocha';
 import * as express from 'express';
-import Janus from './janus-gateway-node/lib/janus-gateway-node';
+import { Janus } from './janus-gateway-node/dist';
 import { v1 as uuidv1 } from 'uuid';
 import { exec } from 'child_process';
 const pause = (n:number) => new Promise((resolve) => setTimeout(() => resolve(), n));
@@ -35,7 +35,7 @@ const logger = {
 
 		if (enable) {
 			console.log("\x1b[32m", `[test info] ${message}`);
-			logFile.write(util.format(message) + '\n');
+			//logFile.write(util.format(message) + '\n');
 		}
 
 	},
@@ -45,7 +45,9 @@ const logger = {
 			if (args) {
 				const message = args.join(' ');
 				console.log("\x1b[33m", `[test browser] ${message}`);
-				logFile.write(util.format(message) + '\n');
+				if (message.includes("error")) {
+					logFile.write(util.format(message) + '\n');
+				}
 			}
 		}
 
@@ -71,7 +73,7 @@ const logger = {
 		if (enable) {
 			const string = JSON.stringify(object, null, 2);
 			console.log("\x1b[37m", `[test json] ${string}`);
-			logFile.write(util.format(string) + '\n');
+			//logFile.write(util.format(string) + '\n');
 		}
 
 	}
@@ -150,7 +152,7 @@ const generateInstances = (amount:number) => {
 			admin_ws_port : start_admin_ws_port + i,
 			stun_server : "stun.voip.eutelia.it",
 			stun_port : 3478,
-			debug_level : 5 //6
+			debug_level : 4 //5 //6
 		});
 	}
 	
@@ -517,6 +519,7 @@ describe(
 				await pause(3000);
 				
 				const janus = new Janus({
+					getId: () => uuidv1(),
 					instances: configs,
 					retrieveContext, 
 					updateContext,
@@ -529,7 +532,7 @@ describe(
 					onDisconnected : () => {
 						
 						logger.info(`janus - disconnected`);
-
+						
 					},
 					onError : (error) => {
 						
@@ -600,6 +603,7 @@ describe(
 				await janus.terminate();
 
 				await terminateContainers();
+
 			}
 		);
 	}
