@@ -229,7 +229,7 @@ const launchClient = async (headless, video, user_id) => {
 
 	const host = `127.0.0.1`;
 
-	await client.goto(`http://localhost:${port}?search&user_id=${user_id}&host=${host}&port=${p}`);
+	await client.goto(`http://localhost:${port}?search&user_id=${user_id}&host=${host}&port=${p}`); //http://localhost:3000?search&user_id=12&host=127.0.0.1&port=8080
 	
 	await client.setViewport({ width, height });
 
