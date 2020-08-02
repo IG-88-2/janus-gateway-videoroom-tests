@@ -151,6 +151,7 @@ const generateInstances = (amount:number) => {
 			ws_port : start_ws_port + i,
 			admin_ws_port : start_admin_ws_port + i,
 			stun_server : "stun.voip.eutelia.it",
+			nat_1_1_mapping : "3.121.126.200",
 			stun_port : 3478,
 			debug_level : 4 //5 //6
 		});
@@ -226,8 +227,16 @@ const launchClient = async (headless, video, user_id) => {
 	await debug.goto(`chrome://webrtc-internals/`);
 
 	const p = 8080;
+	
+	//const user_id = this.options.user_id;
+        
+	const url = `3.121.126.200`;
 
-	const host = `127.0.0.1`;
+	let host = `127.0.0.1`; //url
+
+	const domain = `ec2-3-121-126-200.eu-central-1.compute.amazonaws.com`;
+
+	const server = `ws://${url}:8080/?id=${user_id}`;
 
 	await client.goto(`http://localhost:${port}?search&user_id=${user_id}&host=${host}&port=${p}`); //http://localhost:3000?search&user_id=12&host=127.0.0.1&port=8080
 	
@@ -275,7 +284,8 @@ const launchContainers = (image, instances) => {
 			stun_server, 
 			stun_port,
 			docker_ip,
-			debug_level
+			debug_level,
+			nat_1_1_mapping
 		} = instances[i];
 		
 		const args = [
@@ -287,6 +297,7 @@ const launchContainers = (image, instances) => {
 			[ "LOG_PREFIX", log_prefix ],
 			[ "DOCKER_IP", docker_ip ],
 			[ "DEBUG_LEVEL", debug_level ],
+			//[ "NAT_1_1_MAPPING", nat_1_1_mapping],
 			[ "RTP_PORT_RANGE", `${udpStart}-${udpEnd}` ],
 			[ "STUN_SERVER", stun_server ],
 			[ "STUN_PORT", stun_port ]
@@ -509,6 +520,8 @@ describe(
 				const nClients = nRooms * publishers;
 
 				await launchServer();
+
+				await pause(3000);
 				
 				const instances = generateInstances(nInstances);
 				

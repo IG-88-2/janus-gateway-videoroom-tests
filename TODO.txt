@@ -1,6 +1,7 @@
 TODO move launch containers inside janus gateway node
 TODO retrieve/update context default
 TODO number of instances prop
+TODO admin monitor
 TODO on instance died ? (migrate)
 TODO remove room request, maybe remove room after interval of inactivity ?
 TODO notify all related users through push event about room destruction
