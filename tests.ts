@@ -1,6 +1,6 @@
 import * as mocha from 'mocha';
 import * as express from 'express';
-import { Janus } from './janus-gateway-node/dist';
+import { Janus } from 'janus-gateway-node';
 import { v1 as uuidv1 } from 'uuid';
 import { exec } from 'child_process';
 const pause = (n:number) => new Promise((resolve) => setTimeout(() => resolve(), n));
@@ -151,9 +151,9 @@ const generateInstances = (amount:number) => {
 			ws_port : start_ws_port + i,
 			admin_ws_port : start_admin_ws_port + i,
 			stun_server : "stun.voip.eutelia.it",
-			nat_1_1_mapping : "3.121.126.200",
+			nat_1_1_mapping : "127.0.0.1", //"3.121.126.200",
 			stun_port : 3478,
-			debug_level : 4 //5 //6
+			debug_level : 5 //6
 		});
 	}
 	
@@ -232,7 +232,7 @@ const launchClient = async (headless, video, user_id) => {
         
 	const url = `3.121.126.200`;
 
-	let host = `127.0.0.1`; //url
+	let host = url; //`127.0.0.1`;
 
 	const domain = `ec2-3-121-126-200.eu-central-1.compute.amazonaws.com`;
 
@@ -297,7 +297,7 @@ const launchContainers = (image, instances) => {
 			[ "LOG_PREFIX", log_prefix ],
 			[ "DOCKER_IP", docker_ip ],
 			[ "DEBUG_LEVEL", debug_level ],
-			//[ "NAT_1_1_MAPPING", nat_1_1_mapping],
+			[ "NAT_1_1_MAPPING", nat_1_1_mapping],
 			[ "RTP_PORT_RANGE", `${udpStart}-${udpEnd}` ],
 			[ "STUN_SERVER", stun_server ],
 			[ "STUN_PORT", stun_port ]
@@ -522,10 +522,11 @@ describe(
 				await launchServer();
 
 				await pause(3000);
-				
+
+				/*
 				const instances = generateInstances(nInstances);
 				
-				launchContainers('janus-gateway', instances);
+				launchContainers('herbert1947/janus-gateway-videoroom', instances);
 
 				const configs = instancesToConfigurations(instances);
 
@@ -566,7 +567,8 @@ describe(
 					});
 					logger.json(result);
 				}
-				
+				*/
+
 				const ps = [];
 
 				for(let i = 0; i < nClients; i++) {
@@ -613,9 +615,9 @@ describe(
 					await browser.close();
 				}
 
-				await janus.terminate();
+				//await janus.terminate();
 
-				await terminateContainers();
+				//await terminateContainers();
 
 			}
 		);

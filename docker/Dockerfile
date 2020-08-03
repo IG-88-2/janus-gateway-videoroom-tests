@@ -4,7 +4,7 @@ ARG DEBIAN_FRONTEND=noninteractive
 
 RUN apt-get update \
 	&& apt-get install -y git wget build-essential cmake libwebsockets-dev golang pkg-config libconfig-dev libmicrohttpd-dev libcurl4-openssl-dev libjansson-dev libnice-dev libssl-dev libglib2.0-dev libopus-dev libogg-dev gengetopt libtool automake \
-	&& git clone --single-branch --branch master https://github.com/WildHorse19/configure \
+	&& git clone --single-branch --branch master https://github.com/IG-88-2/configure \
 	&& cd configure \
 	&& gcc -w -g3 configure.c -o configure -lconfig \
 	&& cd .. \

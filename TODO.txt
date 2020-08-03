@@ -6,6 +6,7 @@ TODO on instance died ? (migrate)
 TODO remove room request, maybe remove room after interval of inactivity ?
 TODO notify all related users through push event about room destruction
 TODO pass admin secret together with other options
+
 TODO switch codecs
 TODO improve logging (what exactly needs to be logged for efficient error analysis??)
 TODO after room left camera still in use
