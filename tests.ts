@@ -1,165 +1,16 @@
+import { getNextMockVideoPath, getRoomsFromFirstClient, click, connected, logger } from './utils';
 import * as mocha from 'mocha';
 import * as express from 'express';
 import { Janus } from 'janus-gateway-node';
 import { v1 as uuidv1 } from 'uuid';
-import { exec } from 'child_process';
 const pause = (n:number) => new Promise((resolve) => setTimeout(() => resolve(), n));
 const expect = require(`chai`).expect;
 const path = require(`path`);
 const http = require('http');
 const puppeteer = require('puppeteer');
 const bodyParser = require('body-parser');
-const port = 3000;
 const fs = require('fs');
-const util = require('util');
-const logFile = fs.createWriteStream(__dirname + '/test.log', { flags : 'w' });
-
-
-
-let enable = true;
-
-
-
-const logger = {
-	enable: () => {
-
-        enable = true;
-    
-    },
-    disable: () => {
-    
-        enable = false;
-    
-    },
-	info : (message) => {
-
-		if (enable) {
-			console.log("\x1b[32m", `[test info] ${message}`);
-			//logFile.write(util.format(message) + '\n');
-		}
-
-	},
-	browser : (...args) => {
-
-		if (enable) {
-			if (args) {
-				const message = args.join(' ');
-				console.log("\x1b[33m", `[test browser] ${message}`);
-				if (message.includes("error")) {
-					logFile.write(util.format(message) + '\n');
-				}
-			}
-		}
-
-	},
-	error : (message) => {
-		
-		if (enable) {
-			if (typeof message==="string") {
-				console.log("\x1b[31m", `[test error] ${message}`);
-				logFile.write(util.format(message) + '\n');
-			} else {
-				try {
-					const string = JSON.stringify(message, null, 2);
-					console.log("\x1b[31m", `[test error] ${string}`);
-					logFile.write(util.format(string) + '\n');
-				} catch(error) {}
-			}
-		}
-
-	},
-	json : (object) => {
-
-		if (enable) {
-			const string = JSON.stringify(object, null, 2);
-			console.log("\x1b[37m", `[test json] ${string}`);
-			//logFile.write(util.format(string) + '\n');
-		}
-
-	}
-};
-
-
-
-const click = async (client, query) => {
-
-	await client.waitForSelector(query);
-
-	await pause(500);
-
-	const target = (await client.$$(query))[0];
-
-	await target.click();
-
-	await pause(500);
-
-	return target;
-
-}
-
-
-
-const getRooms = async (client, query) => {
-
-	const rooms = (await client.$$(query));
-
-	const roomsText = [];
-
-	for(let i = 0; i < rooms.length; i++) {
-
-		const element = rooms[i];
-
-		const text = await client.evaluate((element) => {
-			
-			return element.textContent;
-			
-		}, element);
-
-		roomsText.push(text);
-
-	}
-
-	return roomsText;
-
-}
-
-
-
-const connected = async (client) => {
-	
-	await client.waitForSelector('.room-element');
-		
-}
-
-
-
-const generateInstances = (amount:number) => {
-
-	const instances = [];
-
-	const start_ws_port = 8188;
-
-	const start_admin_ws_port = 7188;
-
-	for(let i = 0; i < amount; i++) {
-		instances.push({
-			id : uuidv1(),
-			admin_key : uuidv1(),
-			server_name : `instance_${i}`,
-			log_prefix : `instance_${i}:`,
-			docker_ip : `127.0.0.${1 + i}`, //"127.0.0.1", 
-			ws_port : start_ws_port + i,
-			admin_ws_port : start_admin_ws_port + i,
-			stun_server : "stun.voip.eutelia.it",
-			nat_1_1_mapping : "127.0.0.1", //"3.121.126.200",
-			stun_port : 3478,
-			debug_level : 5 //6
-		});
-	}
-	
-	return instances;
-
-};
+const port = 3000;
 
 
 
@@ -189,17 +40,13 @@ const launchServer = () => {
 
 			logger.info(`server listening on port ${port}`);
 
-			resolve();
+			resolve(httpServer);
 	
 		});
 
 	});
 
 };
-
-
-
-const mocksFolder = `C:\\Users\\clint\\Downloads\\mocks`;
 
 
 
@@ -230,13 +77,11 @@ const launchClient = async (headless, video, user_id) => {
 	
 	//const user_id = this.options.user_id;
         
-	const url = `3.121.126.200`;
+	const aws = `3.121.126.200`;
 
-	let host = url; //`127.0.0.1`;
+	let host = `127.0.0.1`;
 
-	const domain = `ec2-3-121-126-200.eu-central-1.compute.amazonaws.com`;
-
-	const server = `ws://${url}:8080/?id=${user_id}`;
+	const server = `ws://${host}:8080/?id=${user_id}`;
 
 	await client.goto(`http://localhost:${port}?search&user_id=${user_id}&host=${host}&port=${p}`); //http://localhost:3000?search&user_id=12&host=127.0.0.1&port=8080
 	
@@ -261,246 +106,6 @@ const launchClient = async (headless, video, user_id) => {
 
 
 
-const launchContainers = (image, instances) => {
-
-	logger.info(`launching ${instances.length} containers`);
-
-	logger.json(instances);
-
-	const step = 101;
-
-	let udpStart = 20000;
-
-	let udpEnd = udpStart + step - 1;
-
-	for(let i = 0; i < instances.length; i++) {
-		const {
-			id,
-			admin_key,
-			server_name,
-			ws_port,
-			log_prefix,
-			admin_ws_port,
-			stun_server, 
-			stun_port,
-			docker_ip,
-			debug_level,
-			nat_1_1_mapping
-		} = instances[i];
-		
-		const args = [
-			[ "ID", id ],
-			[ "ADMIN_KEY", admin_key ],
-			[ "SERVER_NAME", server_name ],
-			[ "WS_PORT", ws_port ],
-			[ "ADMIN_WS_PORT", admin_ws_port ],
-			[ "LOG_PREFIX", log_prefix ],
-			[ "DOCKER_IP", docker_ip ],
-			[ "DEBUG_LEVEL", debug_level ],
-			[ "NAT_1_1_MAPPING", nat_1_1_mapping],
-			[ "RTP_PORT_RANGE", `${udpStart}-${udpEnd}` ],
-			[ "STUN_SERVER", stun_server ],
-			[ "STUN_PORT", stun_port ]
-		];
-		
-		let command = `docker run -i --cap-add=NET_ADMIN --name ${server_name} `;
-		//--publish-all=true
-		//-P
-		//--network=host
-		//-p 127.0.0.1:20000-40000:20000-40000
-		//command += `-p 127.0.0.1:${udpStart}-${udpEnd}:${udpStart}-${udpEnd}/udp `;
-		command += `-p ${docker_ip}:${udpStart}-${udpEnd}:${udpStart}-${udpEnd}/udp `;
-		command += `-p ${ws_port}:${ws_port} `;
-		command += `-p ${admin_ws_port}:${admin_ws_port} `;
-		command += `${args.map(([name,value]) => `-e ${name}="${value}"`).join(' ')} `;
-		command += `${image}`;
-		
-		logger.info(`launching container ${i}...${command}`);
-
-		exec(
-			command,
-			{
-				maxBuffer: 1024 * 1024 * 1024
-			},
-			(error, stdout, stderr) => {
-				
-				logger.info(`container ${server_name} terminated`);
-
-				if (error) {
-					if (error.message) {
-						logger.error(error.message);
-					} else {
-						logger.error(error);
-					}
-				}
-
-			}
-		);
-
-		udpStart += step;
-		udpEnd += step;
-	}
-
-};
-
-
-
-const terminateContainers = async () => {
-
-	const command = `FOR /F %A IN ('docker ps -q') DO docker rm -f %~A`; //docker stop
-
-	//docker rm $(docker ps -a -q)
-
-	try {
-
-		const result = await exec(
-			command
-		);
-
-	} catch(error) {}
-
-};
-
-
-
-const instancesToConfigurations = (instances) => {
-
-	const data = instances.map(({
-		admin_key,
-		server_name,
-		ws_port,
-		docker_ip,
-		admin_ws_port,
-		log_prefix,
-		stun_server, 
-		stun_port,
-		id,
-		debug_level
-	}) => {
-		return {
-			protocol: `ws`,
-			address: docker_ip,
-			port: ws_port,
-			adminPort: admin_ws_port,
-			adminKey: admin_key,
-			server_name
-		};
-	});
-
-	return data;
-
-};
-
-
-
-const retrieveContext = () => {
-
-	try {
-
-		const contextPath = path.resolve('context.json');
-
-		const file = fs.readFileSync(contextPath, 'utf-8');
-
-		const context = JSON.parse(file);
-
-		logger.info('context loaded');
-
-		logger.json(context);
-
-		return context;
-
-	} catch(error) {
-
-		logger.error(error);
-
-		return {};
-
-	}
-
-};
-
-
-
-const updateContext = async (rooms) => {
-
-	try {
-		
-		const contextPath = path.resolve('context.json');
-
-		const file = JSON.stringify(rooms);
-
-		logger.info('update context');
-
-		logger.json(rooms);
-
-		const fsp = fs.promises;
-
-		await fsp.writeFile(contextPath, file, 'utf8');
-		
-	} catch(error) {
-
-		logger.error(error);
-		
-	}
-
-	return rooms;
-
-};
-
-
-
-const mockVideos = fs.readdirSync(mocksFolder)
-.filter((entry) => {
-
-	const extension = entry.split('.').pop();
-
-	return extension==='y4m';
-
-});
-
-
-
-let counter = 0;
-
-
-
-const getNextMockVideoPath = () => {
-
-	let next = mockVideos[counter];
-
-	if (!next) {
-		counter = 0;
-		next = mockVideos[counter];
-	}
-
-	counter++;
-	
-	return path.resolve(mocksFolder, next);
-
-}
-
-
-
-const getRoomsFromFirstClient = async (ps) => {
-
-	const { client } = await ps[0];
-
-	await click(client, '#connect');
-
-	await connected(client);
-
-	let rooms = await getRooms(client, '.room-id');
-
-	await click(client, '#disconnect');
-
-	rooms = rooms.filter((room_id) => room_id.length > 5);
-
-	return rooms;
-
-}
-
-
-
 describe(
 	`test`,
 	() => {
@@ -511,33 +116,71 @@ describe(
 
 				this.timeout(0);
 
-				const publishers = 6;
-
-				const nInstances = 2;
+				const publishers = 1;
 				
-				const nRooms = 1;
+				const nRooms = 2;
 
 				const nClients = nRooms * publishers;
 
-				await launchServer();
-
-				await pause(3000);
-
-				/*
-				const instances = generateInstances(nInstances);
-				
-				launchContainers('herbert1947/janus-gateway-videoroom', instances);
-
-				const configs = instancesToConfigurations(instances);
-
-				await pause(3000);
+				//const httpServer : any = await launchServer();
 				
 				const janus = new Janus({
-					getId: () => uuidv1(),
-					instances: configs,
-					retrieveContext, 
-					updateContext,
 					logger,
+					keepAliveTimeout:30000,
+					syncInterval:30000,
+					instancesAmount:1,
+					dockerJanusImage:'herbert1947/janus-gateway-videoroom',
+					generateId: () => uuidv1(),
+					retrieveContext: () => {
+
+						try {
+					
+							const contextPath = path.resolve('context.json');
+					
+							const file = fs.readFileSync(contextPath, 'utf-8');
+					
+							const context = JSON.parse(file);
+					
+							logger.info('context loaded');
+					
+							logger.json(context);
+					
+							return context;
+					
+						} catch(error) {
+					
+							logger.error(error);
+					
+							return {};
+					
+						}
+					
+					}, 
+					updateContext: async (rooms) => {
+
+						try {
+							
+							const contextPath = path.resolve('context.json');
+					
+							const file = JSON.stringify(rooms);
+					
+							logger.info('update context');
+					
+							logger.json(rooms);
+					
+							const fsp = fs.promises;
+					
+							await fsp.writeFile(contextPath, file, 'utf8');
+							
+						} catch(error) {
+					
+							logger.error(error);
+							
+						}
+					
+						return rooms;
+					
+					},
 					onConnected : () => {
 						
 						logger.info(`janus - connected`);
@@ -557,18 +200,24 @@ describe(
 				
 				await janus.initialize();
 				
-				await pause(1500);
+				await pause(3500);
 				
 				for(let i = 0; i < nRooms; i++) {
 					const result = await janus.createRoom({
 						load: {
-							description: uuidv1()
+							description: uuidv1(),
+							bitrate: 58000,
+							bitrate_cap: false,
+							fir_freq: undefined,
+							videocodec:i===0 ? "vp8" : "vp9",
+							vp9_profile:i===0 ? undefined : "2"
 						}
 					});
 					logger.json(result);
 				}
-				*/
 
+				await pause(35000000);
+				/*
 				const ps = [];
 
 				for(let i = 0; i < nClients; i++) {
@@ -581,43 +230,17 @@ describe(
 
 				await Promise.all(ps);
 				
-				const rooms = await getRoomsFromFirstClient(ps);
-
-				await pause(1000);
-
-				const f = async (id, client, interval) => {
-					await click(client, '#connect');
-					await connected(client);
-					await pause(300);
-					await click(client, `#join-${id}`);
-					await pause(interval);
-					await click(client, `#leave-${id}`);
-					await pause(2000);
-					await click(client, '#disconnect');
-				};
-
-				const list = [];
-				
-				for(let i = 0; i < rooms.length; i++) {
-					const id = rooms[i];
-					const start = i * publishers;
-					for(let j = start; j < start + publishers; j++) {
-						const { client } = await ps[j];
-						const p = f(id, client, 60000);
-						list.push(p);
-					}
-				}
-
-				await Promise.all(list);
+				await pause(1000000000);
 
 				for(let i = 0; i < nClients; i++) {
 					const { browser } = await ps[i];
 					await browser.close();
 				}
 
-				//await janus.terminate();
+				await janus.terminate();
+				*/
 
-				//await terminateContainers();
+				//await httpServer.close();
 
 			}
 		);
