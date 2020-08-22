@@ -1,26 +1,15 @@
-TODO after room left camera still in use +
-TODO reduce timeout for requests (5 seconds ???) +
-TODO switch codecs +
-TODO move launch containers inside janus gateway node +
-
-TODO join and configure - if already connected remove user from room to allow rejoin
 TODO pass admin secret together with other options
-
-TODO retrieve/update context default
-TODO number of instances prop
 TODO admin monitor
-TODO on instance died ? (migrate)
+TODO on instance died ?
 TODO remove room request, maybe remove room after interval of inactivity ?
 TODO notify all related users through push event about room destruction
 TODO improve logging (what exactly needs to be logged for efficient error analysis??)
 TODO review edge cases for all apis
 TODO review relationship between handle id and user id, do i really need to keep hash ?
-_______________________________________________________________________________________________
-TODO migrate room on different janus instance 
-TODO use redis to preserve context (shared key storage)
-TODO run in cluster (factor out relevant parts)
+TODO migrate room on different janus instance
+TODO run node in cluster (factor out relevant parts)
 TODO tests for each api (edge cases)
 TODO types everywhere
-TODO improve instance selection (load balancing) for instances
-TODO synchronize - is this relevant for instance selection ?
-TODO make use of accept new sessions janus feature when things turn nasty on any of instances
+TODO instance selection (load balancing) for instances
+TODO make use of accept new sessions janus feature when things turn nasty on any of the instances
+TODO ???

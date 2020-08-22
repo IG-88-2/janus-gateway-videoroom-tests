@@ -1,11 +1,13 @@
 {
     "name": "janus-gateway-videoroom-tests",
-    "version": "0.0.0",
+    "version": "0.0.1",
     "author": "Anatoly Strashkevich",
     "copyright": "Copyright © 2020 Janus",
     "scripts": {
         "build": "node --max_old_space_size=4096 ./node_modules/webpack/bin/webpack.js -w --config webpack.config.js",
-        "test": "./node_modules/.bin/mocha -b ./tests/test.js"
+        "test": "./node_modules/.bin/mocha -b ./tests/test.js",
+        "containers:launch": "node ./launchInstances.js --image herbert1947/janus-gateway-videoroom --n 10",
+        "containers:terminate": "node ./terminateInstances.js"
     },
     "dependencies": {
         "@types/express": "^4.11.1",
@@ -42,12 +44,14 @@
         "@types/mocha": "^7.0.2",
         "@types/pidusage": "^2.0.1",
         "chai": "^4.2.0",
-        "janus-gateway-node": "^0.0.61",
+        "janus-gateway-node": "^0.0.72",
         "mocha": "^7.1.1",
         "node-usage": "^0.0.3",
         "pidusage": "^2.0.19",
         "puppeteer": "^2.1.1",
+        "reconnecting-websocket": "^4.4.0",
         "redis": "^3.0.2",
-        "roar-pidusage": "^1.1.7"
+        "roar-pidusage": "^1.1.7",
+        "yargs": "^15.4.1"
     }
 }
