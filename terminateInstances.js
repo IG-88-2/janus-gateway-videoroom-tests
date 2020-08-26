@@ -26,9 +26,11 @@ terminateInstances()
 .then(() => {
 
     const filePath = path.resolve('instances.json');
-
-    fs.unlinkSync(filePath);
-
+    
+    try {
+        fs.unlinkSync(filePath);
+    } catch(e) {}
+    
     console.log('done');
 
 });

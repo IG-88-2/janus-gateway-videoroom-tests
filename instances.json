@@ -1,0 +1,1 @@
+[{"protocol":"ws","address":"127.0.0.1","port":8188,"adminPort":7188,"adminKey":"93e132b1-e7ce-11ea-a3ec-014be713c5a4","server_name":"instance_0"},{"protocol":"ws","address":"127.0.0.2","port":8189,"adminPort":7189,"adminKey":"93e132b3-e7ce-11ea-a3ec-014be713c5a4","server_name":"instance_1"}]

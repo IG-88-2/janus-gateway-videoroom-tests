@@ -6,7 +6,7 @@
     "scripts": {
         "build": "node --max_old_space_size=4096 ./node_modules/webpack/bin/webpack.js -w --config webpack.config.js",
         "test": "./node_modules/.bin/mocha -b ./tests/test.js",
-        "containers:launch": "node ./launchInstances.js --image herbert1947/janus-gateway-videoroom --n 10",
+        "containers:launch": "node ./launchInstances.js --image herbert1947/janus-gateway-videoroom --n 2",
         "containers:terminate": "node ./terminateInstances.js"
     },
     "dependencies": {

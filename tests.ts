@@ -113,17 +113,7 @@ const launchServer = () => {
 
 
 
-const launchClient = async (headless, video, user_id) => {
-	const width = 950;
-	const height = 900;
-	const flags = [
-		'--ignore-certificate-errors',
-		'--no-sandbox',
-		'--use-fake-ui-for-media-stream',
-		'--use-fake-device-for-media-stream',
-		`--window-size=${width},${height}`,
-		`--use-file-for-fake-video-capture=${video}`
-	];
+const launchClient = async (headless, video, user_id, flags, width, height) => {
 	const browser = await puppeteer.launch({ headless, args: flags });
 	const debug = await browser.newPage();
 	const client = await browser.newPage();
@@ -226,6 +216,7 @@ const updateContextRedis = async (rooms) => {
 */
 
 
+
 describe(
 	`test`,
 	() => {
@@ -236,20 +227,31 @@ describe(
 
 				this.timeout(0);
 				
-				const nRooms = 4;
+				const nRooms = 5;
 
 				const nClients = 2;
 
 				const httpServer : any = await launchServer();
 				
+				let instances = null;
+
+				try {
+					const instancesPath = path.resolve('instances.json');
+					const result = fs.readFileSync(instancesPath, 'utf-8');
+					instances = JSON.parse(result);
+				} catch(e) {}
+				
+				const generateInstances = instances ? () => instances : undefined; 
+				
 				const janus = new Janus({
 					logger,
 					keepAliveTimeout:10000,
 					syncInterval:10000,
-					instancesAmount:1,
+					instancesAmount:2,
 					generateId: () => uuidv1(),
 					retrieveContext: retrieveContextFile, //retrieveContextRedis,
 					updateContext: updateContextFile, //updateContextRedis,
+					generateInstances,
 					onError: (error) => {
 						
 						logger.error(error);
@@ -261,7 +263,7 @@ describe(
 
 				const exitHandler = async () => {
 					//process.stdin.resume();
-					await janus.terminate();
+					//await janus.terminate();
 					await httpServer.close();
 					//process.exit(0);
 				};
@@ -275,7 +277,7 @@ describe(
 				for(let i = 0; i < nRooms; i++) {
 					const result = await janus.createRoom({
 						load: {
-							description: i===0 ? "Cool vp8 Room" : "Cool vp9 Room",
+							description: i%2 ? `Cool vp8 room (${i})` : `Cool vp9 room (${i})`,
 							bitrate: 512000,
 							bitrate_cap: false,
 							fir_freq: undefined,
@@ -291,8 +293,22 @@ describe(
 				for(let i = 0; i < nClients; i++) {
 					const p = getNextMockVideoPath();
 					logger.info(p);
+					const width = 950;
+					const height = 900;
+					const flags = [
+						'--ignore-certificate-errors',
+						'--no-sandbox',
+						`--window-size=${width},${height}`
+					];
+					if (i===0) {
+						flags.push(
+							'--use-fake-ui-for-media-stream',
+							'--use-fake-device-for-media-stream',
+							`--use-file-for-fake-video-capture=${p}`
+						);
+					}
 					ps.push(
-						launchClient(false, p, i)
+						launchClient(false, p, i, flags, width, height)
 					);
 				}
 

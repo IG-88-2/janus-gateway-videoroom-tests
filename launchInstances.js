@@ -2,7 +2,7 @@ const uuid = require('uuid');
 const fs = require('fs');
 const exec = require('child_process').exec;
 const path = require('path');
-const {argv} = require('yargs')
+const { argv } = require('yargs');
 
 
 
@@ -26,11 +26,11 @@ const launchInstances = async () => {
             admin_key : generateId(),
             server_name : `instance_${i}`,
             log_prefix : `instance_${i}:`,
-            docker_ip : `127.0.0.${1 + i}`, //"127.0.0.1", 
+            docker_ip :  `127.0.0.${1 + i}`, //"127.0.0.1",
             ws_port : start_ws_port + i,
             admin_ws_port : start_admin_ws_port + i,
             stun_server : "stun.voip.eutelia.it",
-            nat_1_1_mapping : "127.0.0.1", //"3.121.126.200",
+            nat_1_1_mapping : `127.0.0.${1 + i}`, //"127.0.0.1", //"3.121.126.200",
             stun_port : 3478,
             debug_level : 5 //6
         });
@@ -140,7 +140,7 @@ launchInstances().then((instances) => {
     const file = JSON.stringify(instances);
     const fsp = fs.promises;
 
-    fsp.writeFile(instancesPath, file, 'utf8')
+    return fsp.writeFile(instancesPath, file, 'utf8')
     .then(() => {
         console.log('done');
     });
