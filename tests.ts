@@ -1,23 +1,72 @@
-import { getNextMockVideoPath, getRoomsFromFirstClient, click, connected } from './utils';
 import * as mocha from 'mocha';
 import * as express from 'express';
 import { Janus } from './janus-gateway-node/janus-gateway-node';
 import { v1 as uuidv1 } from 'uuid';
-const pause = (n:number) => new Promise((resolve) => setTimeout(() => resolve(), n));
 const expect = require(`chai`).expect;
-const path = require(`path`);
 const http = require('http');
 const puppeteer = require('puppeteer');
 const bodyParser = require('body-parser');
-const fs = require('fs');
 const port = 3000;
+const fs = require('fs');
+const logFile = fs.createWriteStream(__dirname + '/test.log', { flags : 'w' });
+const util = require('util');
+const pause = (n:number) => new Promise((resolve) => setTimeout(() => resolve(), n));
+const path = require(`path`);
+const mocksFolder = `C:\\Users\\clint\\Downloads\\mocks`;
 /*
 const redis = require("redis");
 const client = redis.createClient();
 client.on("error", (error) => logger.error(error));
 */
-const logFile = fs.createWriteStream(__dirname + '/test.log', { flags : 'w' });
-const util = require('util');
+
+
+
+const mockVideos = fs.readdirSync(mocksFolder).filter((entry) => {
+
+	const extension = entry.split('.').pop();
+
+	return extension==='y4m';
+
+});
+
+
+
+let counter = 0;
+
+
+
+const getNextMockVideoPath = () => {
+
+	let next = mockVideos[counter];
+
+	if (!next) {
+		counter = 0;
+		next = mockVideos[counter];
+	}
+
+	counter++;
+	
+	return path.resolve(mocksFolder, next);
+
+}
+
+
+
+const click = async (client, query) => {
+
+	await client.waitForSelector(query);
+
+	await pause(500);
+
+	const target = (await client.$$(query))[0];
+
+	await target.click();
+
+	await pause(500);
+
+	return target;
+
+}
 
 
 
@@ -65,7 +114,7 @@ const logger = {
 				logFile.write(util.format(message) + '\n');
 			} else {
 				try {
-					const string = JSON.stringify(message, null, 2);
+					const string = util.inspect(message, {showHidden: false, depth: null});
 					console.log("\x1b[31m", `[test error] ${string}`);
 					logFile.write(util.format(string) + '\n');
 				} catch(error) {}
@@ -113,7 +162,7 @@ const launchServer = () => {
 
 
 
-const launchClient = async (headless, video, user_id, flags, width, height) => {
+const launchClient = async ({ headless, user_id, flags, width, height }) => {
 	const browser = await puppeteer.launch({ headless, args: flags });
 	const debug = await browser.newPage();
 	const client = await browser.newPage();
@@ -135,7 +184,8 @@ const launchClient = async (headless, video, user_id, flags, width, height) => {
 	//await client.evaluate(() => {});
 	return { 
 		browser, 
-		client 
+		client,
+		user_id
 	};
 };
 
@@ -147,7 +197,7 @@ const retrieveContextFile = async () => {
 		const file = fs.readFileSync(contextPath, 'utf-8');
 		const context = JSON.parse(file);
 		logger.info('context loaded');
-		logger.json(context);
+		//logger.json(context);
 		return context;
 	} catch(error) {
 		logger.error(error);
@@ -162,7 +212,7 @@ const updateContextFile = async (rooms) => {
 		const contextPath = path.resolve('context.json');
 		const file = JSON.stringify(rooms);
 		logger.info('update context');
-		logger.json(rooms);
+		//logger.json(rooms);
 		const fsp = fs.promises;
 		await fsp.writeFile(contextPath, file, 'utf8');
 	} catch(error) {
@@ -170,6 +220,7 @@ const updateContextFile = async (rooms) => {
 	}
 	return rooms;
 }
+
 
 
 /*
@@ -288,7 +339,7 @@ describe(
 					logger.json(result);
 				}
 				
-				const ps = [];
+				let ps = [];
 
 				for(let i = 0; i < nClients; i++) {
 					const p = getNextMockVideoPath();
@@ -300,21 +351,77 @@ describe(
 						'--no-sandbox',
 						`--window-size=${width},${height}`
 					];
-					if (i===0) {
-						flags.push(
-							'--use-fake-ui-for-media-stream',
-							'--use-fake-device-for-media-stream',
-							`--use-file-for-fake-video-capture=${p}`
-						);
-					}
+					//if (i===0) {
+					flags.push(
+						'--use-fake-ui-for-media-stream',
+						'--use-fake-device-for-media-stream',
+						`--use-file-for-fake-video-capture=${p}`
+					);
+					//}
 					ps.push(
-						launchClient(false, p, i, flags, width, height)
+						launchClient({
+							headless: false, 
+							user_id: i, 
+							flags, 
+							width, 
+							height 
+						})
 					);
 				}
 
-				await Promise.all(ps);
+				ps = await Promise.all(ps);
 				
-				await pause(1000000000);
+				const rooms = await janus.getRooms();
+
+				for(let i = 0; i < rooms.load.length; i++) {
+					const room = rooms.load[i];
+					const id = room.room_id;
+					for(let j = 0; j < nClients; j++) {
+						const { client } = ps[j];
+						await client.waitForSelector('.room');
+						await pause(1000);
+						try {
+							await click(client, `#room-${id}`);
+						} catch(error) {
+							logger.error(error);
+						}
+					}
+					for(let j = 0; j < nClients; j++) {
+						const { client } = ps[j];
+						for(let k = 0; k < nClients; k++) {
+							if (k===j) {
+								continue;
+							}
+							const { user_id } = ps[k];
+							await client.waitForSelector(`#video-${user_id}`, { timeout: 10000 });
+							const r = await client.evaluate((user_id) => {
+
+								const video : any = document.getElementById(`video-${user_id}`);
+
+								if (!video) {
+									return;
+								}
+
+								return {
+									currentTime: video.currentTime, 
+									paused: video.paused, 
+									ended: video.ended, 
+									readyState: video.readyState,
+									streamActive: video.srcObject.active,
+									streamId:video.srcObject.id
+								};
+
+							}, user_id);
+							const {
+								streamActive,
+								streamId
+							} = r;
+							expect(streamActive).to.equal(true);
+							expect(streamId).to.equal('janus');
+						}
+					}
+					await pause(1000);
+				}
 
 				for(let i = 0; i < nClients; i++) {
 					const { browser } = await ps[i];
