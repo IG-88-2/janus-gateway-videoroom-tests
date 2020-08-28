@@ -1,6 +1,6 @@
 import * as mocha from 'mocha';
 import * as express from 'express';
-import { Janus } from './janus-gateway-node/janus-gateway-node';
+import { Janus } from 'janus-gateway-node';
 import { v1 as uuidv1 } from 'uuid';
 const expect = require(`chai`).expect;
 const http = require('http');
@@ -89,12 +89,13 @@ const logger = {
 
 		if (enable) {
 			console.log("\x1b[32m", `[test info] ${message}`);
-			//logFile.write(util.format(message) + '\n');
+			logFile.write(util.format(message) + '\n');
 		}
 
 	},
 	browser : (...args) => {
 
+		/*
 		if (enable) {
 			if (args) {
 				const message = args.join(' ');
@@ -104,6 +105,7 @@ const logger = {
 				}
 			}
 		}
+		*/
 
 	},
 	error : (message) => {
@@ -127,7 +129,7 @@ const logger = {
 		if (enable) {
 			const string = JSON.stringify(object, null, 2);
 			console.log("\x1b[37m", `[test json] ${string}`);
-			//logFile.write(util.format(string) + '\n');
+			logFile.write(util.format(string) + '\n');
 		}
 
 	}
@@ -280,7 +282,7 @@ describe(
 				
 				const nRooms = 5;
 
-				const nClients = 2;
+				const nClients = 5;
 
 				const httpServer : any = await launchServer();
 				
@@ -371,10 +373,12 @@ describe(
 
 				ps = await Promise.all(ps);
 				
-				const rooms = await janus.getRooms();
+				let rooms : any = await janus.getRooms();
 
-				for(let i = 0; i < rooms.load.length; i++) {
-					const room = rooms.load[i];
+				rooms = rooms.load.filter((room) => room.secret);
+
+				for(let i = 0; i < rooms.length; i++) {
+					const room = rooms[i];
 					const id = room.room_id;
 					for(let j = 0; j < nClients; j++) {
 						const { client } = ps[j];
