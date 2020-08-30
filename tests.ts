@@ -285,6 +285,8 @@ describe(
 				const nClients = 5;
 
 				const httpServer : any = await launchServer();
+
+				await pause(35000000);
 				
 				let instances = null;
 
@@ -301,10 +303,9 @@ describe(
 					keepAliveTimeout:10000,
 					syncInterval:10000,
 					instancesAmount:2,
-					generateId: () => uuidv1(),
 					retrieveContext: retrieveContextFile, //retrieveContextRedis,
 					updateContext: updateContextFile, //updateContextRedis,
-					generateInstances,
+					//generateInstances,
 					onError: (error) => {
 						
 						logger.error(error);
