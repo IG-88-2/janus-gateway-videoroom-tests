@@ -4,10 +4,8 @@ This repo contains a simple test for [react-videoroom-janus](https://github.com/
 ![alt text](https://github.com/IG-88-2/janus-gateway-videoroom-tests/blob/master/test.jpg?raw=true)
 ## Usage
 Before running make sure you have installed all submodules together with dependencies and compiled them.
-Test will autostart janus docker containers so make sure to close them either manually or by running...
-```
-npm run containers:terminate
-```
+Test will autostart janus docker containers so make sure to close them before test either manually or by running npm run containers:terminate  
+
 ```
 npm run build
 ...
