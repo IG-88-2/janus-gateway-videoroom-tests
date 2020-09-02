@@ -1,6 +1,6 @@
 import * as mocha from 'mocha';
 import * as express from 'express';
-import { Janus } from 'janus-gateway-node';
+import { Janus } from 'janus-gateway-node'; //'./janus-gateway-node/janus-gateway-node';
 import { v1 as uuidv1 } from 'uuid';
 const expect = require(`chai`).expect;
 const http = require('http');
@@ -285,8 +285,6 @@ describe(
 				const nClients = 5;
 
 				const httpServer : any = await launchServer();
-
-				await pause(35000000);
 				
 				let instances = null;
 
@@ -300,12 +298,6 @@ describe(
 				
 				const janus = new Janus({
 					logger,
-					keepAliveTimeout:10000,
-					syncInterval:10000,
-					instancesAmount:2,
-					retrieveContext: retrieveContextFile, //retrieveContextRedis,
-					updateContext: updateContextFile, //updateContextRedis,
-					//generateInstances,
 					onError: (error) => {
 						
 						logger.error(error);
