@@ -297,6 +297,7 @@ describe(
 				const generateInstances = instances ? () => instances : undefined; 
 				
 				const janus = new Janus({
+					generateInstances,
 					logger,
 					onError: (error) => {
 						

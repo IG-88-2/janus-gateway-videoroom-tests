@@ -4359,10 +4359,10 @@ isstream@~0.1.2:
   resolved "https://registry.yarnpkg.com/isstream/-/isstream-0.1.2.tgz#47e63f7af55afa6f92e1500e690eb8b8529c099a"
   integrity sha1-R+Y/evVa+m+S4VAOaQ64uFKcCZo=
 
-janus-gateway-node@^0.0.92:
-  version "0.0.92"
-  resolved "https://registry.yarnpkg.com/janus-gateway-node/-/janus-gateway-node-0.0.92.tgz#538563e8e6120a54464c05d147a93139ce1f624c"
-  integrity sha512-huyGwuqF91sWrBOoJsonIgtAyPOfPg3tLCCvPuPqx+1+T0ojTDOtxyVOu+c+WmEdO3ZfqubKrWeasHF9bswsrQ==
+janus-gateway-node@^0.0.95:
+  version "0.0.95"
+  resolved "https://registry.yarnpkg.com/janus-gateway-node/-/janus-gateway-node-0.0.95.tgz#82a2bf6a1b0c0b1c7d9d0230c6391e702c28132e"
+  integrity sha512-CoxlQfCp8ojAg8NpN8//WfH2MklN10nWziAAJuskYayaN4WeYlmuxilxvVAS7/31WUakn1fM01hSK8avH0xQQA==
 
 "js-tokens@^3.0.0 || ^4.0.0", js-tokens@^4.0.0:
   version "4.0.0"
