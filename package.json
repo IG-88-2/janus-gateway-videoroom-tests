@@ -1,6 +1,6 @@
 {
     "name": "janus-gateway-videoroom-tests",
-    "version": "0.0.2",
+    "version": "0.0.3",
     "author": "Anatoly Strashkevich",
     "scripts": {
         "build": "node --max_old_space_size=4096 ./node_modules/webpack/bin/webpack.js -w --config webpack.config.js",
@@ -14,14 +14,11 @@
         "babel-preset-env": "^1.7.0",
         "babel-preset-es2015": "^6.24.1",
         "bluebird": "^3.7.2",
-        "body-parser": "^1.19.0",
         "clean-webpack-plugin": "^4.0.0",
         "copy-webpack-plugin": "^9.0.1",
-        "express": "^4.17.1",
         "faker": "^5.5.3",
         "file-loader": "^6.2.0",
         "fs-extra": "^10.0.0",
-        "nodemon": "^2.0.13",
         "pm2": "^5.1.2",
         "ramda": "^0.27.1",
         "request": "^2.88.2",
@@ -32,8 +29,7 @@
         "util": "^0.12.4",
         "webpack": "^5.58.1",
         "webpack-cli": "^4.9.0",
-        "webpack-node-externals": "^3.0.0",
-        "winston": "^3.3.3"
+        "webpack-node-externals": "^3.0.0"
     },
     "devDependencies": {
         "@babel/core": "^7.15.8",
@@ -42,12 +38,10 @@
         "@types/mocha": "^9.0.0",
         "@types/pidusage": "^2.0.1",
         "chai": "^4.3.4",
-        "janus-gateway-node": "^0.0.97",
         "mocha": "^9.1.2",
         "node-usage": "^0.0.3",
         "pidusage": "^2.0.21",
         "puppeteer": "^10.4.0",
-        "reconnecting-websocket": "^4.4.0",
         "redis": "^3.1.2",
         "roar-pidusage": "^1.1.7"
     }
