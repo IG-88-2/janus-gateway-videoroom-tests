@@ -12,7 +12,8 @@ module.exports = {
 	mode : `development`,
 
 	entry : {
-		'test' : `./tests.ts`
+		'test' : `./tests.ts`,
+		'launchInstances' : './launchInstances.ts'
 	},
 	
 	output : {
@@ -51,12 +52,14 @@ module.exports = {
 			'process.env.NODE_ENV' : JSON.stringify(`development`),
 			'process.mode' : JSON.stringify(`development`)
 		}),
-		new CopyWebpackPlugin([ 
-			{ 
-				from : "./janus-gateway-videoroom-demo/development", 
-				to : "development" 
-			}
-		])
+		new CopyWebpackPlugin({
+			patterns: [
+				{ 
+					from: "./janus-gateway-videoroom-demo/development", 
+					to: "development"  
+				}
+			]
+		})
 	],
 	
 	externals: {
