@@ -1,35 +1,58 @@
-import * as express from 'express';
 import { v1 as uuidv1 } from 'uuid';
 import { logger } from './logger';
-import { fromEvent } from 'rxjs';
-import { first, filter } from 'rxjs/operators';
 const expect = require(`chai`).expect;
-const http = require('http');
 const puppeteer = require('puppeteer');
-const bodyParser = require('body-parser');
-const port = 3000;
 const fs = require('fs');
 const path = require(`path`);
 
 
 
-export const launchClient = async ({ headless, user_id, flags, width, height }) => {
+export const launchClient = async ({ headless, url, width, height, mockVideoPath }) => {
 
-	const browser = await puppeteer.launch({ headless, args: flags });
-
+	const args = [
+		//'--single-process',
+		//'--no-zygote',
+		'--ignore-certificate-errors',
+		'--no-sandbox',
+		'--user-gesture-required', //TODO ?
+		'--autoplay-policy=user-gesture-required' //TODO ?
+	];
+	
+	args.push('--use-fake-ui-for-media-stream');
+	args.push('--use-fake-device-for-media-stream');
+	args.push(`--use-file-for-fake-video-capture=${mockVideoPath}`);
+	
+	if (!headless) {
+		args.push('--window-size=1800,900');
+		args.push('--auto-open-devtools-for-tabs');
+	}
+	
+	const browser = await puppeteer.launch({
+		//executablePath: 'C:\\Users\\clint\\Desktop\\chrome-win\\chrome.exe', //'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe',
+		headless,
+		devtools: !headless,
+		args
+	});
+	
+	const context = browser.defaultBrowserContext();
+				
+	context.overridePermissions(url, [
+		'notifications', 
+		//"videoCapture", 
+		//"audioCapture",
+		'camera', 
+		'microphone'
+	]);
+	
 	const debug = await browser.newPage();
 
 	const client = await browser.newPage();
+	
+	await client.setDefaultNavigationTimeout(0); 
 
 	await debug.goto(`chrome://webrtc-internals/`);
 	
-	const ws_port = 8080;
-
-	const host = `127.0.0.1`;
-
-	const server = `ws://${host}:8080/?id=${user_id}`;
-
-	await client.goto(`http://localhost:${port}?search&user_id=${user_id}&host=${host}&port=${ws_port}`); 
+	await client.goto(url); 
 	
 	await client.setViewport({ width, height });
 
@@ -44,6 +67,6 @@ export const launchClient = async ({ headless, user_id, flags, width, height }) 
 	return { 
 		browser, 
 		client,
-		user_id
+		debug
 	};
 };
