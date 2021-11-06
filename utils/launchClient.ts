@@ -7,16 +7,21 @@ const path = require(`path`);
 
 
 
-export const launchClient = async ({ headless, url, width, height, mockVideoPath }) => {
+export const launchClient = async ({ headless, url, width, height, mockVideoPath, requireUserGesture }) => {
 
 	const args = [
 		//'--single-process',
 		//'--no-zygote',
 		'--ignore-certificate-errors',
-		'--no-sandbox',
-		'--user-gesture-required', //TODO ?
-		'--autoplay-policy=user-gesture-required' //TODO ?
+		'--no-sandbox'
 	];
+
+	if (requireUserGesture) {
+		args.push('--user-gesture-required');
+		args.push('--autoplay-policy=user-gesture-required');
+	} else {
+		args.push('--autoplay-policy=no-user-gesture-required');
+	}
 	
 	args.push('--use-fake-ui-for-media-stream');
 	args.push('--use-fake-device-for-media-stream');

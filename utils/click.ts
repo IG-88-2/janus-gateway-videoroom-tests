@@ -1,16 +1,30 @@
 import { pause } from "./pause";
 
-export const click = async (client, query) => {
+export const click = async (client, query, mobile?) => {
 
-	await client.waitForSelector(query);
+	try {
+		await client.waitForSelector(query, {
+			timeout: 10000
+		});
+	} catch(error) {
+		throw new Error(`could not locate ${query}`);
+	}
 
-	await pause(500);
+	await pause(50);
 
-	const target = (await client.$$(query))[0];
+	const target = await client.$(query);
 
-	await target.click();
+	if (!target) {
+		throw new Error(`unable to click nonexisting element ${query}`);
+	}
 
-	await pause(500);
+	if (mobile) {
+		await target.tap();
+	} else {
+		await target.click();
+	}
+
+	await pause(100);
 
 	return target;
 

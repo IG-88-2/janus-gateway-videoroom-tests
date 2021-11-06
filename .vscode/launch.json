@@ -12,7 +12,10 @@
 			"stopOnEntry": false,
 			"args": ["${workspaceFolder}/tests/test.js"],
             "runtimeExecutable": null,
-            "cwd": "${workspaceFolder}"
+            "cwd": "${workspaceFolder}",
+            "env": {
+                "url":"http://localhost:3000"
+            }
         }
     ]
 }
