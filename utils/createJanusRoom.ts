@@ -1,9 +1,12 @@
+process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
 const axios = require('axios');
 
 export const createJanusRoom = () : Promise<string> => {
 
+	const url = process.env.url;
+	
 	return axios
-	.post('http://localhost:3000/v1/room', { 
+	.post(`${url}/v1/room`, { 
 		description: "my personal room for testing", 
 		videocodec: "vp9" 
 	})

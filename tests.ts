@@ -23,7 +23,6 @@ const agora_channel = "617fc732735bb3001df63ff6";
 
 /*
 TODO
-
 3. toggle audio
 4. toggle video
 6. verify audio coming through
@@ -41,6 +40,8 @@ TODO
 const rejoinRoomTest = async (provider:"janus" | "agora", amount: number, attempts: number) => {
 
 	const janus_room_id = await createJanusRoom();
+
+	console.log("janus_room_id", janus_room_id);
 
 	const users = [];
 	
@@ -88,6 +89,8 @@ const rejoinRoomTest = async (provider:"janus" | "agora", amount: number, attemp
 			}
 		}
 		
+		await pause(30000 * 100);
+		
 		for(let i = 0; i < users.length; i++) {
 			const user = users[i];
 			await click(user.client, '#end-call', false);
@@ -118,7 +121,7 @@ describe(
 
 				this.timeout(0);
 				
-				await rejoinRoomTest("janus", 2, 5);
+				await rejoinRoomTest("janus", 2, 1);
 				
 			}
 		);
