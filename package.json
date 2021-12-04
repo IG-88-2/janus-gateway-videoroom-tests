@@ -1,12 +1,11 @@
 {
     "name": "janus-gateway-videoroom-tests",
-    "version": "0.0.3",
+    "version": "0.0.4",
     "author": "Anatoly Strashkevich",
     "scripts": {
         "build": "node --max_old_space_size=4096 ./node_modules/webpack/bin/webpack.js -w --config webpack.config.js",
-        "test": ".\\node_modules\\.bin\\cross-env url=http://localhost:3000 .\\node_modules\\.bin\\mocha .\\tests\\test.js",
-        "test:ec2": ".\\node_modules\\.bin\\cross-env url=https://kreiadesign.com .\\node_modules\\.bin\\mocha .\\tests\\test.js",
-        "test:raj": ".\\node_modules\\.bin\\cross-env url=https://s-janus.bioiq.cam .\\node_modules\\.bin\\mocha .\\tests\\test.js"
+        "test": "cross-env url=http://localhost:3000 ./node_modules/.bin/mocha ./tests/test.js",
+        "test:raj": "cross-env url=https://s-janus.bioiq.cam ./node_modules/.bin/mocha ./tests/test.js"
     },
     "dependencies": {
         "@types/express": "^4.17.13",

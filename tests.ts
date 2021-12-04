@@ -16,28 +16,10 @@ const expect = require(`chai`).expect;
 const puppeteer = require('puppeteer');
 const fs = require('fs');
 const path = require(`path`);
-const axios = require('axios');
-const agora_channel = "617fc732735bb3001df63ff6";
 
 
 
-/*
-TODO
-3. toggle audio
-4. toggle video
-6. verify audio coming through
-7. no device on start - wait until plugged in
-8. device reconnected - connection restored
-9. connection loss - after connection restored webrtc up
-10. janus renegotiation
-11. change provider
-12. memory
-13. stress test
-*/
-
-
-
-const rejoinRoomTest = async (provider:"janus" | "agora", amount: number, attempts: number) => {
+const rejoinRoomTest = async (amount: number, attempts: number) => {
 
 	const janus_room_id = await createJanusRoom();
 
@@ -50,8 +32,6 @@ const rejoinRoomTest = async (provider:"janus" | "agora", amount: number, attemp
 
 		const url = constructUrl({
 			user_id,
-			provider,
-			agora_channel,
 			janus_channel: janus_room_id
 		});
 		
@@ -71,11 +51,11 @@ const rejoinRoomTest = async (provider:"janus" | "agora", amount: number, attemp
 	
 	for(let i = 0; i < attempts; i++) {
 
-		await pause(5000);
+		await pause(2000);
 
 		for(let i = 0; i < users.length; i++) {
 			const user = users[i];
-			await click(user.client, `#start-${provider}`, false);
+			await click(user.client, `#start-janus`, false);
 		}
 
 		for(let i = 0; i < users.length; i++) {
@@ -96,11 +76,11 @@ const rejoinRoomTest = async (provider:"janus" | "agora", amount: number, attemp
 			await click(user.client, '#end-call', false);
 		}
 
-		await pause(5000);
+		await pause(2000);
 
 	}
 	
-	await pause(2000);
+	await pause(2000 * 1000);
 	
 	for(let i = 0; i < users.length; i++) {
 		const user = users[i];
@@ -121,9 +101,15 @@ describe(
 
 				this.timeout(0);
 				
-				await rejoinRoomTest("janus", 2, 1);
+				// await createJanusRoom()
+				// .then((id) => {
+				// 	console.log("success", id);
+				// });
+
+				await rejoinRoomTest(2, 1);
 				
 			}
 		);
+		
 	}
 );

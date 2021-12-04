@@ -8,7 +8,7 @@ export const confirmVideoAmount = async (client, nMembers:number) => {
                 return v.length;
             });
             return n == nMembers;
-        }, 10000, 50);
+        }, 100000, 150);
     } catch(error) {
         throw new Error(`expected ${nMembers} video elements could not be located \n`);
     }

@@ -1,6 +1,6 @@
 const fs = require('fs');
 const path = require(`path`);
-const mocksFolder = `C:\\Users\\clint\\Downloads\\mocks`;
+const mocksFolder = path.resolve(__dirname, "mocks_v2");
 
 let counter = 0;
 
